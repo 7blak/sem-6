@@ -13,12 +13,10 @@ using System.Windows.Shapes;
 using System.Drawing;
 using System.IO;
 using System;
+using Point = System.Windows.Point;
 
 namespace lab1
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private BitmapSource? originalImage;
@@ -88,7 +86,7 @@ namespace lab1
             FilteredImage.Source = filteredImage;
         }
 
-        private void ApplyConvolutionFilter(double[,] kernel, System.Windows.Point anchor, int divisor = 1, double factor = 1, double bias = 0)
+        private void ApplyConvolutionFilter(ConvolutionFilter filter)
         {
             if (filteredImage == null)
                 return;
@@ -112,12 +110,12 @@ namespace lab1
                         {
                             for (int kx = -1; kx <= 1; kx++)
                             {
-                                int neighborX = Math.Max(0, Math.Min(width - 1, x + kx + (int)anchor.X));
-                                int neighborY = Math.Max(0, Math.Min(height - 1, y + ky + (int)anchor.Y));
+                                int neighborX = Math.Max(0, Math.Min(width - 1, x + kx + (int)filter.Anchor.X));
+                                int neighborY = Math.Max(0, Math.Min(height - 1, y + ky + (int)filter.Anchor.Y));
                                 int kernelIndex = neighborY * stride + neighborX * bytesPerPixel;
-                                r += pixels[kernelIndex + 2] * kernel[ky + 1, kx + 1];
-                                g += pixels[kernelIndex + 1] * kernel[ky + 1, kx + 1];
-                                b += pixels[kernelIndex] * kernel[ky + 1, kx + 1];
+                                r += pixels[kernelIndex + 2] * filter.DividedKernel[ky + 1, kx + 1];
+                                g += pixels[kernelIndex + 1] * filter.DividedKernel[ky + 1, kx + 1];
+                                b += pixels[kernelIndex] * filter.DividedKernel[ky + 1, kx + 1];
                             }
                         }
                         buffer[index] = (byte)Math.Clamp(b, 0, 255);
@@ -176,22 +174,28 @@ namespace lab1
         {
             double[,] blurKernel =
             {
-                { 1/9.0, 1/9.0, 1/9.0 },
-                { 1/9.0, 1/9.0, 1/9.0 },
-                { 1/9.0, 1/9.0, 1/9.0 }
+                { 1, 1, 1 },
+                { 1, 1, 1 },
+                { 1, 1, 1 }
             };
-            ApplyConvolutionFilter(blurKernel, new System.Windows.Point(0, 0));
+            int divisor = 9;
+            Point anchor = new Point(0, 0);
+
+            ApplyConvolutionFilter(new ConvolutionFilter(blurKernel, divisor, anchor));
         }
 
         private void GaussianBlur(object sender, RoutedEventArgs e)
         {
             double[,] gaussianKernel =
             {
-                { 1/16.0, 2/16.0, 1/16.0 },
-                { 2/16.0, 4/16.0, 2/16.0 },
-                { 1/16.0, 2/16.0, 1/16.0 }
+                { 1, 2, 1 },
+                { 2, 4, 2 },
+                { 1, 2, 1 }
             };
-            ApplyConvolutionFilter(gaussianKernel, new System.Windows.Point(0, 0));
+            int divisor = 16;
+            Point anchor = new Point(0, 0);
+
+            ApplyConvolutionFilter(new ConvolutionFilter(gaussianKernel, divisor, anchor));
         }
 
         private void Sharpen(object sender, RoutedEventArgs e)
@@ -202,7 +206,10 @@ namespace lab1
                 { -1, 5, -1 },
                 { 0, -1, 0 }
             };
-            ApplyConvolutionFilter(sharpenKernel, new System.Windows.Point(0, 0));
+            int divisor = 1;
+            Point anchor = new Point(0, 0);
+
+            ApplyConvolutionFilter(new ConvolutionFilter(sharpenKernel, divisor, anchor));
         }
 
         private void EdgeDetection(object sender, RoutedEventArgs e)
@@ -213,7 +220,10 @@ namespace lab1
                 { -1, 8, -1 },
                 { -1, -1, -1 }
             };
-            ApplyConvolutionFilter(edgeKernel, new System.Windows.Point(0, 0));
+            int divisor = 1;
+            Point anchor = new Point(0, 0);
+
+            ApplyConvolutionFilter(new ConvolutionFilter(edgeKernel, divisor, anchor));
         }
 
         private void Emboss(object sender, RoutedEventArgs e)
@@ -224,13 +234,21 @@ namespace lab1
                 { -1, 1, 1 },
                 { 0, 1, 2 }
             };
-            ApplyConvolutionFilter(embossKernel, new System.Windows.Point(0, 0));
+            int divisor = 1;
+            Point anchor = new Point(0, 0);
+
+            ApplyConvolutionFilter(new ConvolutionFilter(embossKernel, divisor, anchor));
         }
 
         private void ResetImage(object sender, RoutedEventArgs e)
         {
             filteredImage = new WriteableBitmap(originalImage);
             FilteredImage.Source = filteredImage;
+        }
+
+        private void CustomFilter_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

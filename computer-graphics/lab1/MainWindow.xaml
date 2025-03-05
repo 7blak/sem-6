@@ -32,6 +32,8 @@
                 <MenuItem Header="Sharpen" Click="Sharpen"/>
                 <MenuItem Header="Edge Detection" Click="EdgeDetection"/>
                 <MenuItem Header="Emboss" Click="Emboss"/>
+                <Separator/>
+                <MenuItem Header="Custom filter..." Click="CustomFilter_Click"/>
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage"/>
         </Menu>
