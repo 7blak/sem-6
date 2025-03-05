@@ -1,7 +1,7 @@
 ﻿using Microsoft.Win32;
+using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
-using System.IO;
 using Point = System.Windows.Point;
 
 namespace lab1
@@ -10,7 +10,7 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-
+        public ConvolutionFilter? CustomConvolutionFilter {  get; set; }
         public MainWindow()
         {
             InitializeComponent();
@@ -107,9 +107,9 @@ namespace lab1
                                 b += pixels[kernelIndex] * filter.DividedKernel[ky + 1, kx + 1];
                             }
                         }
-                        buffer[index] = (byte)Math.Clamp(b, 0, 255);
-                        buffer[index + 1] = (byte)Math.Clamp(g, 0, 255);
-                        buffer[index + 2] = (byte)Math.Clamp(r, 0, 255);
+                        buffer[index] = (byte)Math.Clamp(b + filter.Offset, 0, 255);
+                        buffer[index + 1] = (byte)Math.Clamp(g + filter.Offset, 0, 255);
+                        buffer[index + 2] = (byte)Math.Clamp(r + filter.Offset, 0, 255);
                     }
                 }
             }
@@ -237,7 +237,19 @@ namespace lab1
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
+                CustomFilterWindow customFilterWindow = new CustomFilterWindow(this);
+                customFilterWindow.Show();
+        }
 
+        private void CustomFilterApply(object sender, RoutedEventArgs e)
+        {
+            if (CustomConvolutionFilter == null)
+            {
+                MessageBox.Show("There is no custom convolution filter loaded!", "Custom Filter");
+                return;
+            }
+
+            ApplyConvolutionFilter(CustomConvolutionFilter);
         }
     }
 }

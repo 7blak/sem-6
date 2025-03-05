@@ -27,13 +27,14 @@
                 <MenuItem Header="Gamma Correction" Click="GammaCorrection"/>
             </MenuItem>
             <MenuItem Header="Convolution Filters">
+                <MenuItem Header="Custom Filter" Click="CustomFilterApply"/>
                 <MenuItem Header="Blur" Click="Blur"/>
                 <MenuItem Header="Gaussian Blur" Click="GaussianBlur"/>
                 <MenuItem Header="Sharpen" Click="Sharpen"/>
                 <MenuItem Header="Edge Detection" Click="EdgeDetection"/>
                 <MenuItem Header="Emboss" Click="Emboss"/>
                 <Separator/>
-                <MenuItem Header="Custom filter..." Click="CustomFilter_Click"/>
+                <MenuItem Header="Change custom filter..." Click="CustomFilter_Click"/>
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage"/>
         </Menu>
