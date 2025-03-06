@@ -10,10 +10,63 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-        public ConvolutionFilter? CustomConvolutionFilter {  get; set; }
+        public ConvolutionFilter CustomConvolutionFilter { get; set; }
+        public ConvolutionFilter BlurFilter { get; set; }
+        public ConvolutionFilter GaussianBlurFilter { get; set; }
+        public ConvolutionFilter SharpenFilter { get; set; }
+        public ConvolutionFilter EdgeDetectionFilter { get; set; }
+        public ConvolutionFilter EmbossFilter { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
+            CustomConvolutionFilter = new ConvolutionFilter(new double[3, 3] {
+            { 0, 0, 0 },
+            { 0, 1, 0 },
+            { 0, 0, 0 }
+            },
+            1,
+            new Point(0, 0));
+
+            BlurFilter = new ConvolutionFilter(new double[3, 3] {
+                { 1, 1, 1 },
+                { 1, 1, 1 },
+                { 1, 1, 1 }
+            },
+            9,
+            new Point(0, 0));
+
+            GaussianBlurFilter = new ConvolutionFilter(new double[3, 3] {
+                { 1, 2, 1 },
+                { 2, 4, 2 },
+                { 1, 2, 1 }
+            },
+            16,
+            new Point(0, 0));
+
+            SharpenFilter = new ConvolutionFilter(new double[3, 3] {
+                { 0, -1, 0 },
+                { -1, 5, -1 },
+                { 0, -1, 0 }
+            },
+            1,
+            new Point(0, 0));
+
+            EdgeDetectionFilter = new ConvolutionFilter(new double[3, 3] {
+                { -1, -1, -1 },
+                { -1, 8, -1 },
+                { -1, -1, -1 }
+            },
+            1,
+            new Point(0, 0));
+
+            EmbossFilter = new ConvolutionFilter(new double[3, 3] {
+                { -2, -1, 0 },
+                { -1, 1, 1 },
+                { 0, 1, 2 }
+            },
+            1,
+            new Point(0, 0));
         }
 
         private void OpenFile_Click(object sender, RoutedEventArgs e)
@@ -161,84 +214,47 @@ namespace lab1
 
         private void Blur(object sender, RoutedEventArgs e)
         {
-            double[,] blurKernel =
-            {
-                { 1, 1, 1 },
-                { 1, 1, 1 },
-                { 1, 1, 1 }
-            };
-            int divisor = 9;
-            Point anchor = new Point(0, 0);
-
-            ApplyConvolutionFilter(new ConvolutionFilter(blurKernel, divisor, anchor));
+            ApplyConvolutionFilter(BlurFilter);
         }
 
         private void GaussianBlur(object sender, RoutedEventArgs e)
         {
-            double[,] gaussianKernel =
-            {
-                { 1, 2, 1 },
-                { 2, 4, 2 },
-                { 1, 2, 1 }
-            };
-            int divisor = 16;
-            Point anchor = new Point(0, 0);
-
-            ApplyConvolutionFilter(new ConvolutionFilter(gaussianKernel, divisor, anchor));
+            ApplyConvolutionFilter(GaussianBlurFilter);
         }
 
         private void Sharpen(object sender, RoutedEventArgs e)
         {
-            double[,] sharpenKernel =
-            {
-                { 0, -1, 0 },
-                { -1, 5, -1 },
-                { 0, -1, 0 }
-            };
-            int divisor = 1;
-            Point anchor = new Point(0, 0);
-
-            ApplyConvolutionFilter(new ConvolutionFilter(sharpenKernel, divisor, anchor));
+            ApplyConvolutionFilter(SharpenFilter);
         }
 
         private void EdgeDetection(object sender, RoutedEventArgs e)
         {
-            double[,] edgeKernel =
-            {
-                { -1, -1, -1 },
-                { -1, 8, -1 },
-                { -1, -1, -1 }
-            };
-            int divisor = 1;
-            Point anchor = new Point(0, 0);
-
-            ApplyConvolutionFilter(new ConvolutionFilter(edgeKernel, divisor, anchor));
+            ApplyConvolutionFilter(EdgeDetectionFilter);
         }
 
         private void Emboss(object sender, RoutedEventArgs e)
         {
-            double[,] embossKernel =
-            {
-                { -2, -1, 0 },
-                { -1, 1, 1 },
-                { 0, 1, 2 }
-            };
-            int divisor = 1;
-            Point anchor = new Point(0, 0);
-
-            ApplyConvolutionFilter(new ConvolutionFilter(embossKernel, divisor, anchor));
+            ApplyConvolutionFilter(EmbossFilter);
         }
 
         private void ResetImage(object sender, RoutedEventArgs e)
         {
+            if (originalImage == null)
+                return;
             filteredImage = new WriteableBitmap(originalImage);
             FilteredImage.Source = filteredImage;
         }
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
-                CustomFilterWindow customFilterWindow = new CustomFilterWindow(this);
-                customFilterWindow.Show();
+            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
+            customFilterWindow.ShowDialog();
+            CustomConvolutionFilter = customFilterWindow.Filter;
+        }
+
+        public void OverrideCustomFilter(ConvolutionFilter filter)
+        {
+            CustomConvolutionFilter = filter;
         }
 
         private void CustomFilterApply(object sender, RoutedEventArgs e)
