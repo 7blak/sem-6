@@ -11,11 +11,6 @@ namespace lab1
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
         public ConvolutionFilter CustomConvolutionFilter { get; set; }
-        public ConvolutionFilter BlurFilter { get; set; }
-        public ConvolutionFilter GaussianBlurFilter { get; set; }
-        public ConvolutionFilter SharpenFilter { get; set; }
-        public ConvolutionFilter EdgeDetectionFilter { get; set; }
-        public ConvolutionFilter EmbossFilter { get; set; }
 
         public MainWindow()
         {
@@ -26,47 +21,9 @@ namespace lab1
             { 0, 0, 0 }
             },
             1,
-            new Point(0, 0));
-
-            BlurFilter = new ConvolutionFilter(new double[3, 3] {
-                { 1, 1, 1 },
-                { 1, 1, 1 },
-                { 1, 1, 1 }
-            },
-            9,
-            new Point(0, 0));
-
-            GaussianBlurFilter = new ConvolutionFilter(new double[3, 3] {
-                { 1, 2, 1 },
-                { 2, 4, 2 },
-                { 1, 2, 1 }
-            },
-            16,
-            new Point(0, 0));
-
-            SharpenFilter = new ConvolutionFilter(new double[3, 3] {
-                { 0, -1, 0 },
-                { -1, 5, -1 },
-                { 0, -1, 0 }
-            },
-            1,
-            new Point(0, 0));
-
-            EdgeDetectionFilter = new ConvolutionFilter(new double[3, 3] {
-                { -1, -1, -1 },
-                { -1, 8, -1 },
-                { -1, -1, -1 }
-            },
-            1,
-            new Point(0, 0));
-
-            EmbossFilter = new ConvolutionFilter(new double[3, 3] {
-                { -2, -1, 0 },
-                { -1, 1, 1 },
-                { 0, 1, 2 }
-            },
-            1,
-            new Point(0, 0));
+            new Point(0, 0),
+            EnumConvolutionFilterType.Custom
+            );
         }
 
         private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
@@ -233,27 +190,27 @@ namespace lab1
 
         private void BlurFilter_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(BlurFilter);
+            ApplyConvolutionFilter(ConvolutionFilter.Blur());
         }
 
         private void GaussianBlurFilter_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(GaussianBlurFilter);
+            ApplyConvolutionFilter(ConvolutionFilter.GaussianBlur());
         }
 
         private void SharpenFilter_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(SharpenFilter);
+            ApplyConvolutionFilter(ConvolutionFilter.Sharpen());
         }
 
         private void EdgeDetectionFilter_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(EdgeDetectionFilter);
+            ApplyConvolutionFilter(ConvolutionFilter.EdgeDetection());
         }
 
         private void EmbossFilter_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(EmbossFilter);
+            ApplyConvolutionFilter(ConvolutionFilter.Emboss());
         }
 
         private static int Clamp(int value)

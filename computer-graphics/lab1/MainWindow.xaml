@@ -40,15 +40,16 @@
                 <MenuItem Header="Gamma Correction" Click="GammaCorrection" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Convolution Filters">
-                <MenuItem Header="Custom Filter" Click="CustomFilterApply_Click" Foreground="Black"/>
                 <MenuItem Header="Blur" Click="BlurFilter_Click" Foreground="Black"/>
                 <MenuItem Header="Gaussian Blur" Click="GaussianBlurFilter_Click" Foreground="Black"/>
                 <MenuItem Header="Sharpen" Click="SharpenFilter_Click" Foreground="Black"/>
                 <MenuItem Header="Edge Detection" Click="EdgeDetectionFilter_Click" Foreground="Black"/>
                 <MenuItem Header="Emboss" Click="EmbossFilter_Click" Foreground="Black"/>
-                <Separator/>
-                <MenuItem Header="Change custom filter..." Click="CustomFilter_Click" Foreground="Black"/>
             </MenuItem>
+            <MenuItem Header="Custom Filters">
+                <MenuItem Header="Custom #1" Click="CustomFilterApply_Click" Foreground="Black"/>
+            </MenuItem>
+            <MenuItem Header="Add Custom Filter" Click="CustomFilter_Click"/>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
         </Menu>
         <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top"/>
