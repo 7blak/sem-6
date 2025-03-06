@@ -69,35 +69,6 @@ namespace lab1
             new Point(0, 0));
         }
 
-        private void OpenFile_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Image Files|*.jpg;*.png;*.bmp" };
-            if (openFileDialog.ShowDialog() == true)
-            {
-                originalImage = new BitmapImage(new Uri(openFileDialog.FileName));
-                filteredImage = new WriteableBitmap(originalImage);
-                OriginalImage.Source = originalImage;
-                FilteredImage.Source = filteredImage;
-            }
-        }
-
-        private void SaveFile_Click(object sender, RoutedEventArgs e)
-        {
-            if (filteredImage != null)
-            {
-                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "PNG Image|*.png" };
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    using (FileStream stream = new FileStream(saveFileDialog.FileName, FileMode.Create))
-                    {
-                        PngBitmapEncoder encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(filteredImage));
-                        encoder.Save(stream);
-                    }
-                }
-            }
-        }
-
         private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
         {
             if (filteredImage == null)
@@ -172,14 +143,57 @@ namespace lab1
             FilteredImage.Source = filteredImage;
         }
 
-        private int Clamp(int value)
+        private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
-            return Math.Max(0, Math.Min(255, value));
+            OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Image Files|*.jpg;*.png;*.bmp" };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                originalImage = new BitmapImage(new Uri(openFileDialog.FileName));
+                filteredImage = new WriteableBitmap(originalImage);
+                OriginalImage.Source = originalImage;
+                FilteredImage.Source = filteredImage;
+            }
+        }
+
+        private void SaveFile_Click(object sender, RoutedEventArgs e)
+        {
+            if (filteredImage != null)
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "PNG Image|*.png" };
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (FileStream stream = new FileStream(saveFileDialog.FileName, FileMode.Create))
+                    {
+                        PngBitmapEncoder encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(filteredImage));
+                        encoder.Save(stream);
+                    }
+                }
+            }
+        }
+
+        private void ResetImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (originalImage == null)
+                return;
+            filteredImage = new WriteableBitmap(originalImage);
+            FilteredImage.Source = filteredImage;
+        }
+
+        private void CustomFilter_Click(object sender, RoutedEventArgs e)
+        {
+            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
+            customFilterWindow.ShowDialog();
+            CustomConvolutionFilter = customFilterWindow.Filter;
         }
 
         private void InvertColors(object sender, RoutedEventArgs e)
         {
-            ApplyPixelFilter((r, g, b) => (255 - r, 255 - g, 255 - b));
+            ApplyPixelFilter((r, g, b) => (
+            255 - r,
+            255 - g,
+            255 - b
+            ));
         }
 
         private void BrightnessCorrection(object sender, RoutedEventArgs e)
@@ -212,60 +226,39 @@ namespace lab1
             ));
         }
 
-        private void Blur(object sender, RoutedEventArgs e)
+        private void CustomFilterApply_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyConvolutionFilter(CustomConvolutionFilter);
+        }
+
+        private void BlurFilter_Click(object sender, RoutedEventArgs e)
         {
             ApplyConvolutionFilter(BlurFilter);
         }
 
-        private void GaussianBlur(object sender, RoutedEventArgs e)
+        private void GaussianBlurFilter_Click(object sender, RoutedEventArgs e)
         {
             ApplyConvolutionFilter(GaussianBlurFilter);
         }
 
-        private void Sharpen(object sender, RoutedEventArgs e)
+        private void SharpenFilter_Click(object sender, RoutedEventArgs e)
         {
             ApplyConvolutionFilter(SharpenFilter);
         }
 
-        private void EdgeDetection(object sender, RoutedEventArgs e)
+        private void EdgeDetectionFilter_Click(object sender, RoutedEventArgs e)
         {
             ApplyConvolutionFilter(EdgeDetectionFilter);
         }
 
-        private void Emboss(object sender, RoutedEventArgs e)
+        private void EmbossFilter_Click(object sender, RoutedEventArgs e)
         {
             ApplyConvolutionFilter(EmbossFilter);
         }
 
-        private void ResetImage(object sender, RoutedEventArgs e)
+        private static int Clamp(int value)
         {
-            if (originalImage == null)
-                return;
-            filteredImage = new WriteableBitmap(originalImage);
-            FilteredImage.Source = filteredImage;
-        }
-
-        private void CustomFilter_Click(object sender, RoutedEventArgs e)
-        {
-            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
-            customFilterWindow.ShowDialog();
-            CustomConvolutionFilter = customFilterWindow.Filter;
-        }
-
-        public void OverrideCustomFilter(ConvolutionFilter filter)
-        {
-            CustomConvolutionFilter = filter;
-        }
-
-        private void CustomFilterApply(object sender, RoutedEventArgs e)
-        {
-            if (CustomConvolutionFilter == null)
-            {
-                MessageBox.Show("There is no custom convolution filter loaded!", "Custom Filter");
-                return;
-            }
-
-            ApplyConvolutionFilter(CustomConvolutionFilter);
+            return Math.Max(0, Math.Min(255, value));
         }
     }
 }
