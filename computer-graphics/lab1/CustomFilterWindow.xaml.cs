@@ -284,5 +284,10 @@ namespace lab1
                 DivisorTextBox.Text = "1";
             }
         }
+
+        private void PresetChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }

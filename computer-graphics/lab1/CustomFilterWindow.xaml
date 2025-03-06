@@ -18,6 +18,8 @@
             <ComboBox x:Name="RowsComboBox" Width="60" SelectionChanged="RowsColumnsChanged"/>
             <TextBlock Text="Columns:" VerticalAlignment="Center" Margin="10 0 5 0"/>
             <ComboBox x:Name="ColumnsComboBox" Width="60" SelectionChanged="RowsColumnsChanged"/>
+            <TextBlock Text="Preset:" VerticalAlignment="Center" Margin="160,0,5,0"/>
+            <ComboBox x:Name="PresetComboBox" Width="60" SelectionChanged="PresetChanged"/>
         </StackPanel>
 
         <Grid x:Name="DataGrid" Grid.Row="1" Background="LightGray" HorizontalAlignment="Center" VerticalAlignment="Center"/>
