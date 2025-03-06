@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 
 namespace lab1
 {
@@ -7,7 +8,8 @@ namespace lab1
     {
         public double[,] Kernel { get; set; }
         public double[,] DividedKernel { get; set; }
-        public double Divisor { get => Divisor; set { CalculateDividedKernel(); } }
+        private double _divisor;
+        public double Divisor { get { return _divisor; } set { _divisor = (value == 0) ? 1 : value; CalculateDividedKernel(); } }
         public Point Anchor { get; set; }
         public double Offset { get; set; }
         public EnumConvolutionFilterType FilterType { get; set; }
@@ -19,18 +21,15 @@ namespace lab1
                 for (int j = 0; j < kernel.GetLength(1); j++)
                     Kernel[i, j] = kernel[i, j];
 
+            DividedKernel = new double[Kernel.GetLength(0), Kernel.GetLength(1)];
             Divisor = divisor;
             Anchor = anchor;
             FilterType = filterType;
             Offset = offset;
-
-            DividedKernel = new double[Kernel.GetLength(0), Kernel.GetLength(1)];
-            CalculateDividedKernel();
         }
 
         private void CalculateDividedKernel()
         {
-            Divisor = (Divisor == 0) ? 1 : Divisor;
             for (int i = 0; i < Kernel.GetLength(0); i++)
                 for (int j = 0; j < Kernel.GetLength(1); j++)
                     DividedKernel[i, j] = Kernel[i, j] / Divisor;
