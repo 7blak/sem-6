@@ -2,6 +2,7 @@
 
 namespace lab1
 {
+    public enum EnumConvolutionFilterType { Custom, Blur, GaussianBlur, Sharpen, EdgeDetection, Emboss };
     public class ConvolutionFilter
     {
         public double[,] Kernel { get; set; }
