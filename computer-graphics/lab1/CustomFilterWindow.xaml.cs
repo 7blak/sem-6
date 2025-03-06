@@ -22,50 +22,34 @@ namespace lab1
         private int _rows = 3;
         private int _columns = 3;
         private TextBox[,] _gridCells = new TextBox[9, 9];
-        private MainWindow _mainWindow;
+        public ConvolutionFilter Filter {  get; set; }
         private bool finished = false;
-        private static double[,] defaultKernel =
-        {
-            {0,0,0 },
-            {0,1,0 },
-            {0,0,0 }
-        };
 
-        public CustomFilterWindow(MainWindow mainWindow)
+        public CustomFilterWindow(ConvolutionFilter convolutionFilter)
         {
             InitializeComponent();
-            _mainWindow = mainWindow;
-            if (_mainWindow.CustomConvolutionFilter == null)
-            {
-                InitializeField(1, 1, 1, 0, 3, 3);
-                CreateGrid();
-                _gridCells[1, 1].Background = Brushes.Wheat;
-            }
-            else
-            {
-                InitializeField(_mainWindow.CustomConvolutionFilter.Anchor.X, _mainWindow.CustomConvolutionFilter.Anchor.Y, _mainWindow.CustomConvolutionFilter.Divisor, _mainWindow.CustomConvolutionFilter.Offset,
-                    _mainWindow.CustomConvolutionFilter.Kernel.GetLength(0), _mainWindow.CustomConvolutionFilter.Kernel.GetLength(1));
-                CreateGrid(_mainWindow.CustomConvolutionFilter.Kernel);
-                _gridCells[(int)_mainWindow.CustomConvolutionFilter.Anchor.Y + _rows / 2, (int)_mainWindow.CustomConvolutionFilter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
-            }
+            Filter = convolutionFilter;
+            InitializeField();
+            CreateGrid();
+            _gridCells[(int)Filter.Anchor.Y + _rows / 2, (int)Filter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
             finished = true;
         }
 
-        private void InitializeField(double x, double y, double divisor, double offset, int rows, int columns)
+        private void InitializeField()
         {
             int[] values = { 1, 3, 5, 7, 9 };
 
-            XTextBox.Text = x.ToString();
-            YTextBox.Text = y.ToString();
+            XTextBox.Text = Filter.Anchor.X.ToString();
+            YTextBox.Text = Filter.Anchor.Y.ToString();
 
-            DivisorTextBox.Text = divisor.ToString();
-            OffsetTextBox.Text = offset.ToString();
+            DivisorTextBox.Text = Filter.Divisor.ToString();
+            OffsetTextBox.Text = Filter.Offset.ToString();
 
             RowsComboBox.ItemsSource = values;
             ColumnsComboBox.ItemsSource = values;
 
-            _rows = rows;
-            _columns = columns;
+            _rows = Filter.Kernel.GetLength(0);
+            _columns = Filter.Kernel.GetLength(1);
             RowsComboBox.SelectedItem = _rows;
             ColumnsComboBox.SelectedItem = _columns;
         }
@@ -75,10 +59,7 @@ namespace lab1
             {
                 _rows = (int)RowsComboBox.SelectedItem;
                 _columns = (int)ColumnsComboBox.SelectedItem;
-                if (_mainWindow.CustomConvolutionFilter != null)
-                    UpdateGridVisibility(_mainWindow.CustomConvolutionFilter.Kernel);
-                else
-                    UpdateGridVisibility();
+                UpdateGridVisibility();
                 UpdateXYCoordinates();
                 if (_gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)] != null)
                     _gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)].Background = Brushes.Wheat;
@@ -94,10 +75,8 @@ namespace lab1
             YTextBox.Text = centerY.ToString();
         }
 
-        private void CreateGrid(double[,]? input = default)
+        private void CreateGrid()
         {
-            if (input == null)
-                input = defaultKernel;
 
             DataGrid.Children.Clear();
             DataGrid.RowDefinitions.Clear();
@@ -126,7 +105,7 @@ namespace lab1
                         Background = Brushes.White,
                         BorderBrush = Brushes.Black,
                         Margin = new Thickness(0),
-                        Text = (i < input.GetLength(0) && j < input.GetLength(1)) ? input[i, j].ToString() : ""
+                        Text = (i < Filter.Kernel.GetLength(0) && j < Filter.Kernel.GetLength(1)) ? Filter.Kernel[i, j].ToString() : ""
                     };
                     cell.TextChanged += GridCellTextChanged;
                     cell.LostFocus += GridCellLostFocus;
@@ -137,7 +116,7 @@ namespace lab1
                 }
             }
 
-            UpdateGridVisibility(input);
+            UpdateGridVisibility();
         }
 
         private void GridCellLostFocus(object sender, RoutedEventArgs e)
@@ -151,10 +130,8 @@ namespace lab1
                 throw new Exception("sender was not TextBox type???");
         }
 
-        private void UpdateGridVisibility(double[,]? input = null)
+        private void UpdateGridVisibility()
         {
-            if (input == null)
-                input = defaultKernel;
             for (int i = 0; i < 9; i++)
             {
                 for (int j = 0; j < 9; j++)
@@ -164,7 +141,7 @@ namespace lab1
                         _gridCells[i, j].IsEnabled = (i < _rows && j < _columns);
                         if (_gridCells[i, j].IsEnabled)
                         {
-                            _gridCells[i, j].Text = _gridCells[i, j].Text == "" ? (i < input.GetLength(0) && j < input.GetLength(1) ? input[i, j].ToString() : "0" ) : _gridCells[i, j].Text;
+                            _gridCells[i, j].Text = _gridCells[i, j].Text == "" ? (i < Filter.Kernel.GetLength(0) && j < Filter.Kernel.GetLength(1) ? Filter.Kernel[i, j].ToString() : "0") : _gridCells[i, j].Text;
                             _gridCells[i, j].Background = Brushes.White;
                         }
                         else
@@ -264,7 +241,7 @@ namespace lab1
                 }
             }
 
-            _mainWindow.CustomConvolutionFilter = new ConvolutionFilter(kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset);
+            Filter = new ConvolutionFilter(kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset);
             Close();
         }
 
@@ -286,6 +263,14 @@ namespace lab1
         }
 
         private void PresetChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is TextBox comboBox)
+            {
+
+            }
+        }
+
+        private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
 
         }

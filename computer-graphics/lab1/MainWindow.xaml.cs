@@ -10,7 +10,7 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-        public ConvolutionFilter? CustomConvolutionFilter { get; set; }
+        public ConvolutionFilter CustomConvolutionFilter { get; set; }
         public ConvolutionFilter BlurFilter { get; set; }
         public ConvolutionFilter GaussianBlurFilter { get; set; }
         public ConvolutionFilter SharpenFilter { get; set; }
@@ -20,6 +20,14 @@ namespace lab1
         public MainWindow()
         {
             InitializeComponent();
+            CustomConvolutionFilter = new ConvolutionFilter(new double[3, 3] {
+            { 0, 0, 0 },
+            { 0, 1, 0 },
+            { 0, 0, 0 }
+            },
+            1,
+            new Point(0, 0));
+
             BlurFilter = new ConvolutionFilter(new double[3, 3] {
                 { 1, 1, 1 },
                 { 1, 1, 1 },
@@ -27,6 +35,7 @@ namespace lab1
             },
             9,
             new Point(0, 0));
+
             GaussianBlurFilter = new ConvolutionFilter(new double[3, 3] {
                 { 1, 2, 1 },
                 { 2, 4, 2 },
@@ -34,6 +43,7 @@ namespace lab1
             },
             16,
             new Point(0, 0));
+
             SharpenFilter = new ConvolutionFilter(new double[3, 3] {
                 { 0, -1, 0 },
                 { -1, 5, -1 },
@@ -41,6 +51,7 @@ namespace lab1
             },
             1,
             new Point(0, 0));
+
             EdgeDetectionFilter = new ConvolutionFilter(new double[3, 3] {
                 { -1, -1, -1 },
                 { -1, 8, -1 },
@@ -48,6 +59,7 @@ namespace lab1
             },
             1,
             new Point(0, 0));
+
             EmbossFilter = new ConvolutionFilter(new double[3, 3] {
                 { -2, -1, 0 },
                 { -1, 1, 1 },
@@ -227,14 +239,22 @@ namespace lab1
 
         private void ResetImage(object sender, RoutedEventArgs e)
         {
+            if (originalImage == null)
+                return;
             filteredImage = new WriteableBitmap(originalImage);
             FilteredImage.Source = filteredImage;
         }
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
-            CustomFilterWindow customFilterWindow = new CustomFilterWindow(this);
-            customFilterWindow.Show();
+            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
+            customFilterWindow.ShowDialog();
+            CustomConvolutionFilter = customFilterWindow.Filter;
+        }
+
+        public void OverrideCustomFilter(ConvolutionFilter filter)
+        {
+            CustomConvolutionFilter = filter;
         }
 
         private void CustomFilterApply(object sender, RoutedEventArgs e)

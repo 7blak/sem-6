@@ -5,8 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:lab1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="900" Width="1600">
+        Title="MainWindow" Height="900" Width="1600" WindowStyle="ThreeDBorderWindow" MinHeight="300" MinWidth="300">
     <Grid>
+        <Grid.Background>
+            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0" Opacity="0.2">
+                <GradientStop Color="Red" Offset="1"/>
+                <GradientStop Color="Red"/>
+                <GradientStop Color="#FFE17100" Offset="0.883"/>
+                <GradientStop Color="#FF9BB500" Offset="0.739"/>
+                <GradientStop Color="#FF0FBE00" Offset="0.622"/>
+                <GradientStop Color="#FF00CBAA" Offset="0.491"/>
+                <GradientStop Color="#FF002CDC" Offset="0.343"/>
+                <GradientStop Color="#FF67008F" Offset="0.222"/>
+                <GradientStop Color="#FF8F2C90" Offset="0.109"/>
+            </LinearGradientBrush>
+        </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition/>
@@ -15,30 +28,30 @@
             <ColumnDefinition/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <Menu Grid.ColumnSpan="4" DockPanel.Dock="Top" FontSize="14">
+        <Menu Grid.ColumnSpan="2" FontSize="14" Background="Black" Foreground="White">
             <MenuItem Header="File">
-                <MenuItem Header="Open file..." Click="OpenFile_Click"/>
-                <MenuItem Header="Save file..." Click="SaveFile_Click"/>
+                <MenuItem Header="Open file..." Click="OpenFile_Click" Foreground="Black"/>
+                <MenuItem Header="Save file..." Click="SaveFile_Click" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Function Filters">
-                <MenuItem Header="Invert Colors" Click="InvertColors"/>
-                <MenuItem Header="Brightness Correction" Click="BrightnessCorrection"/>
-                <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement"/>
-                <MenuItem Header="Gamma Correction" Click="GammaCorrection"/>
+                <MenuItem Header="Invert Colors" Click="InvertColors" Foreground="Black"/>
+                <MenuItem Header="Brightness Correction" Click="BrightnessCorrection" Foreground="Black"/>
+                <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement" Foreground="Black"/>
+                <MenuItem Header="Gamma Correction" Click="GammaCorrection" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Convolution Filters">
-                <MenuItem Header="Custom Filter" Click="CustomFilterApply"/>
-                <MenuItem Header="Blur" Click="Blur"/>
-                <MenuItem Header="Gaussian Blur" Click="GaussianBlur"/>
-                <MenuItem Header="Sharpen" Click="Sharpen"/>
-                <MenuItem Header="Edge Detection" Click="EdgeDetection"/>
-                <MenuItem Header="Emboss" Click="Emboss"/>
+                <MenuItem Header="Custom Filter" Click="CustomFilterApply" Foreground="Black"/>
+                <MenuItem Header="Blur" Click="Blur" Foreground="Black"/>
+                <MenuItem Header="Gaussian Blur" Click="GaussianBlur" Foreground="Black"/>
+                <MenuItem Header="Sharpen" Click="Sharpen" Foreground="Black"/>
+                <MenuItem Header="Edge Detection" Click="EdgeDetection" Foreground="Black"/>
+                <MenuItem Header="Emboss" Click="Emboss" Foreground="Black"/>
                 <Separator/>
-                <MenuItem Header="Change custom filter..." Click="CustomFilter_Click"/>
+                <MenuItem Header="Change custom filter..." Click="CustomFilter_Click" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage"/>
         </Menu>
-        <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top"/>
-        <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top"/>
+        <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top"/>
+        <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top"/>
     </Grid>
 </Window>
