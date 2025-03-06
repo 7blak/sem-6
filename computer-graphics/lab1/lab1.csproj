@@ -13,8 +13,4 @@
     <None Remove="stardew.png" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Resource Include="stardew.png" />
-  </ItemGroup>
-
 </Project>
