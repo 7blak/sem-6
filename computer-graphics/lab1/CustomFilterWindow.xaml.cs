@@ -14,33 +14,26 @@ using System.Windows.Shapes;
 
 namespace lab1
 {
-    /// <summary>
-    /// Interaction logic for CustomFilterWindow.xaml
-    /// </summary>
     public partial class CustomFilterWindow : Window
     {
         private int _rows = 3;
         private int _columns = 3;
         private TextBox[,] _gridCells = new TextBox[9, 9];
-        public ConvolutionFilter Filter {  get; set; }
+        private readonly ConvolutionFilter _originalFilter;
+        public ConvolutionFilter Filter { get; set; }
         private bool finished = false;
 
         public CustomFilterWindow(ConvolutionFilter convolutionFilter)
         {
             InitializeComponent();
+            _originalFilter = convolutionFilter;
             Filter = convolutionFilter;
-            InitializeField();
-            CreateGrid();
-            _gridCells[(int)Filter.Anchor.Y + _rows / 2, (int)Filter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
-            finished = true;
+            InitializeForm();
         }
 
-        private void InitializeField()
+        private void InitializeForm()
         {
             int[] values = { 1, 3, 5, 7, 9 };
-
-            XTextBox.Text = Filter.Anchor.X.ToString();
-            YTextBox.Text = Filter.Anchor.Y.ToString();
 
             DivisorTextBox.Text = Filter.Divisor.ToString();
             OffsetTextBox.Text = Filter.Offset.ToString();
@@ -48,10 +41,24 @@ namespace lab1
             RowsComboBox.ItemsSource = values;
             ColumnsComboBox.ItemsSource = values;
 
+            if (!finished)
+            {
+                PresetComboBox.ItemsSource = Enum.GetValues(typeof(EnumConvolutionFilterType)).Cast<EnumConvolutionFilterType>();
+                PresetComboBox.SelectedIndex = 0;
+            }
+
             _rows = Filter.Kernel.GetLength(0);
             _columns = Filter.Kernel.GetLength(1);
+
+            XTextBox.Text = (Filter.Anchor.X + _columns / 2).ToString();
+            YTextBox.Text = (Filter.Anchor.Y + _rows / 2).ToString();
+
             RowsComboBox.SelectedItem = _rows;
             ColumnsComboBox.SelectedItem = _columns;
+
+            CreateGrid();
+            _gridCells[(int)Filter.Anchor.Y + _rows / 2, (int)Filter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
+            finished = true;
         }
         private void RowsColumnsChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -61,8 +68,6 @@ namespace lab1
                 _columns = (int)ColumnsComboBox.SelectedItem;
                 UpdateGridVisibility();
                 UpdateXYCoordinates();
-                if (_gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)] != null)
-                    _gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)].Background = Brushes.Wheat;
             }
         }
 
@@ -73,6 +78,9 @@ namespace lab1
 
             XTextBox.Text = centerX.ToString();
             YTextBox.Text = centerY.ToString();
+
+            if (_gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)] != null)
+                _gridCells[int.Parse(YTextBox.Text), int.Parse(XTextBox.Text)].Background = Brushes.Wheat;
         }
 
         private void CreateGrid()
@@ -215,9 +223,9 @@ namespace lab1
 
             double divisor, offset, x, y;
             if (!double.TryParse(DivisorTextBox.Text, out divisor) ||
-        !double.TryParse(OffsetTextBox.Text, out offset) ||
-        !double.TryParse(XTextBox.Text, out x) ||
-        !double.TryParse(YTextBox.Text, out y))
+            !double.TryParse(OffsetTextBox.Text, out offset) ||
+            !double.TryParse(XTextBox.Text, out x) ||
+            !double.TryParse(YTextBox.Text, out y))
             {
                 MessageBox.Show("Please enter valid numbers.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
@@ -241,7 +249,7 @@ namespace lab1
                 }
             }
 
-            Filter = new ConvolutionFilter(kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset);
+            Filter = new ConvolutionFilter(kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), EnumConvolutionFilterType.Custom, offset);
             Close();
         }
 
@@ -264,15 +272,37 @@ namespace lab1
 
         private void PresetChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is TextBox comboBox)
+            if (sender is ComboBox comboBox && finished)
             {
-
+                Filter = ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)comboBox.SelectedItem);
+                InitializeForm();
             }
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
+            Filter = _originalFilter;
+            InitializeForm();
+        }
 
+        private void AnchorChange(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(XTextBox.Text, out int x) || !int.TryParse(YTextBox.Text, out int y) || x < 0 || y < 0)
+                return;
+            UpdateGridVisibility();
+            if (finished && y < _rows && x < _columns && _gridCells[y, x] != null)
+                _gridCells[y, x].Background = Brushes.Wheat;
+        }
+
+        private void AnchorTextBoxLostFocus(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(XTextBox.Text, out int x) && int.TryParse(YTextBox.Text, out int y) & x >= 0 & y >= 0)
+            {
+                XTextBox.Text = x >= _columns ? (_columns / 2).ToString() : x.ToString();
+                YTextBox.Text = y >= _rows ? (_rows / 2).ToString() : y.ToString();
+            }
+            else
+                UpdateXYCoordinates();
         }
     }
 }

@@ -16,9 +16,9 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto"/>
             </Grid.ColumnDefinitions>
             <Grid HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
@@ -42,7 +42,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Preset:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox Grid.Column="1" x:Name="PresetComboBox" Width="60" SelectionChanged="PresetChanged" HorizontalAlignment="Left"/>
+                <ComboBox Grid.Column="1" x:Name="PresetComboBox" Width="110" SelectionChanged="PresetChanged" HorizontalAlignment="Left"/>
             </Grid>
         </Grid>
 
@@ -78,9 +78,9 @@
             <TextBox Grid.Row="2" Grid.Column="1" x:Name="OffsetTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
             <TextBlock Grid.Row="4" Text="Anchor X:" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0"/>
-            <TextBox Grid.Row="4" Grid.Column="1" x:Name="XTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            <TextBox Grid.Row="4" Grid.Column="1" x:Name="XTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" SelectionChanged="AnchorChange" LostFocus="AnchorTextBoxLostFocus"/>
             <TextBlock Grid.Row="4" Grid.Column="2" Text="Anchor Y:" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0"/>
-            <TextBox Grid.Row="4" Grid.Column="3" x:Name="YTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            <TextBox Grid.Row="4" Grid.Column="3" x:Name="YTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" SelectionChanged="AnchorChange" LostFocus="AnchorTextBoxLostFocus"/>
         </Grid>
 
         <Grid Grid.Row="3">
