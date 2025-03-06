@@ -1,18 +1,7 @@
 ﻿using Microsoft.Win32;
-using System.ComponentModel;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Drawing;
 using System.IO;
-using System;
+using System.Windows;
+using System.Windows.Media.Imaging;
 using Point = System.Windows.Point;
 
 namespace lab1
@@ -21,7 +10,7 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-
+        public ConvolutionFilter? CustomConvolutionFilter {  get; set; }
         public MainWindow()
         {
             InitializeComponent();
@@ -118,9 +107,9 @@ namespace lab1
                                 b += pixels[kernelIndex] * filter.DividedKernel[ky + 1, kx + 1];
                             }
                         }
-                        buffer[index] = (byte)Math.Clamp(b, 0, 255);
-                        buffer[index + 1] = (byte)Math.Clamp(g, 0, 255);
-                        buffer[index + 2] = (byte)Math.Clamp(r, 0, 255);
+                        buffer[index] = (byte)Math.Clamp(b + filter.Offset, 0, 255);
+                        buffer[index + 1] = (byte)Math.Clamp(g + filter.Offset, 0, 255);
+                        buffer[index + 2] = (byte)Math.Clamp(r + filter.Offset, 0, 255);
                     }
                 }
             }
@@ -248,7 +237,19 @@ namespace lab1
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
+                CustomFilterWindow customFilterWindow = new CustomFilterWindow(this);
+                customFilterWindow.Show();
+        }
 
+        private void CustomFilterApply(object sender, RoutedEventArgs e)
+        {
+            if (CustomConvolutionFilter == null)
+            {
+                MessageBox.Show("There is no custom convolution filter loaded!", "Custom Filter");
+                return;
+            }
+
+            ApplyConvolutionFilter(CustomConvolutionFilter);
         }
     }
 }
