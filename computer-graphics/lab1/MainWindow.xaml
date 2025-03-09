@@ -46,8 +46,14 @@
                 <MenuItem Header="Edge Detection" Click="EdgeDetectionFilter_Click" Foreground="Black"/>
                 <MenuItem Header="Emboss" Click="EmbossFilter_Click" Foreground="Black"/>
             </MenuItem>
-            <MenuItem Header="Custom Filters">
-                <MenuItem Header="Custom #1" Click="CustomFilterApply_Click" Foreground="Black"/>
+            <MenuItem x:Name="CustomFiltersMenuItem" Header="Custom Filters" ItemsSource="{Binding ConvolutionFilters}">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Header" Value="{Binding Name}"/>
+                        <EventSetter Event="Click" Handler="CustomFilterApply_Click"/>
+                        <Setter Property="Foreground" Value="Black"/>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
             </MenuItem>
             <MenuItem Header="Add Custom Filter" Click="CustomFilter_Click"/>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>

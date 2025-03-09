@@ -1,11 +1,14 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 
 namespace lab1
 {
-    public enum EnumConvolutionFilterType { Custom, Blur, GaussianBlur, Sharpen, EdgeDetection, Emboss };
+    public enum EnumConvolutionFilterType { Default, Blur, GaussianBlur, Sharpen, EdgeDetection, Emboss };
+
     public class ConvolutionFilter
     {
+        public string Name { get; set; }
         public double[,] Kernel { get; set; }
         public double[,] DividedKernel { get; set; }
         private double _divisor;
@@ -14,8 +17,9 @@ namespace lab1
         public double Offset { get; set; }
         public EnumConvolutionFilterType FilterType { get; set; }
 
-        public ConvolutionFilter(double[,] kernel, double divisor, System.Windows.Point anchor, EnumConvolutionFilterType filterType, double offset = 0)
+        public ConvolutionFilter(string name, double[,] kernel, double divisor, System.Windows.Point anchor, EnumConvolutionFilterType filterType, double offset = 0)
         {
+            Name = name;
             Kernel = new double[kernel.GetLength(0), kernel.GetLength(1)];
             for (int i = 0; i < kernel.GetLength(0); i++)
                 for (int j = 0; j < kernel.GetLength(1); j++)
@@ -39,8 +43,8 @@ namespace lab1
         {
             switch (filterType)
             {
-                case EnumConvolutionFilterType.Custom:
-                    return Custom();
+                case EnumConvolutionFilterType.Default:
+                    return Default();
                 case EnumConvolutionFilterType.Blur:
                     return Blur();
                 case EnumConvolutionFilterType.GaussianBlur:
@@ -52,26 +56,26 @@ namespace lab1
                 case EnumConvolutionFilterType.Emboss:
                     return Emboss();
                 default:
-                    return Custom();
+                    return Default();
             }
         }
 
-        public static ConvolutionFilter Custom()
+        public static ConvolutionFilter Default()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Default", new double[3, 3] {
                 { 0, 0, 0 },
                 { 0, 1, 0 },
                 { 0, 0, 0 }
             },
             1,
             new Point(0, 0),
-            EnumConvolutionFilterType.Custom
+            EnumConvolutionFilterType.Default
             );
         }
 
         public static ConvolutionFilter Blur()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Blur", new double[3, 3] {
                 { 1, 1, 1 },
                 { 1, 1, 1 },
                 { 1, 1, 1 }
@@ -84,7 +88,7 @@ namespace lab1
 
         public static ConvolutionFilter GaussianBlur()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Gaussian Blur", new double[3, 3] {
                 { 1, 2, 1 },
                 { 2, 4, 2 },
                 { 1, 2, 1 }
@@ -97,7 +101,7 @@ namespace lab1
 
         public static ConvolutionFilter Sharpen()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Sharpen", new double[3, 3] {
                 { 0, -1, 0 },
                 { -1, 5, -1 },
                 { 0, -1, 0 }
@@ -110,7 +114,7 @@ namespace lab1
 
         public static ConvolutionFilter EdgeDetection()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Edge Detection", new double[3, 3] {
                 { -1, -1, -1 },
                 { -1, 8, -1 },
                 { -1, -1, -1 }
@@ -123,7 +127,7 @@ namespace lab1
 
         public static ConvolutionFilter Emboss()
         {
-            return new ConvolutionFilter(new double[3, 3] {
+            return new ConvolutionFilter("Emboss", new double[3, 3] {
                 { -2, -1, 0 },
                 { -1, 1, 1 },
                 { 0, 1, 2 }

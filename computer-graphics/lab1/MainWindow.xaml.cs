@@ -1,6 +1,9 @@
 ﻿using Microsoft.Win32;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Point = System.Windows.Point;
 
@@ -10,20 +13,13 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-        public ConvolutionFilter CustomConvolutionFilter { get; set; }
-
+        public ObservableCollection<ConvolutionFilter> ConvolutionFilters { get; set; }
+        
         public MainWindow()
         {
             InitializeComponent();
-            CustomConvolutionFilter = new ConvolutionFilter(new double[3, 3] {
-            { 0, 0, 0 },
-            { 0, 1, 0 },
-            { 0, 0, 0 }
-            },
-            1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Custom
-            );
+            ConvolutionFilters = new ObservableCollection<ConvolutionFilter>([ConvolutionFilter.Default()]);
+            DataContext = this;
         }
 
         private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
@@ -139,9 +135,8 @@ namespace lab1
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
-            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
+            CustomFilterWindow customFilterWindow = new CustomFilterWindow(ConvolutionFilters);
             customFilterWindow.ShowDialog();
-            CustomConvolutionFilter = customFilterWindow.Filter;
         }
 
         private void InvertColors(object sender, RoutedEventArgs e)
@@ -185,7 +180,10 @@ namespace lab1
 
         private void CustomFilterApply_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(CustomConvolutionFilter);
+            if (sender is MenuItem menuItem && menuItem.DataContext is ConvolutionFilter selectedFilter)
+                ApplyConvolutionFilter(selectedFilter);
+            else
+                MessageBox.Show("Something went wrong with applying the filter.", "Error");
         }
 
         private void BlurFilter_Click(object sender, RoutedEventArgs e)
