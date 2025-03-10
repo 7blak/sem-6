@@ -219,7 +219,6 @@ namespace lab1
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            PresetComboBox.SelectionChanged -= PresetChanged;
             Close();
         }
 

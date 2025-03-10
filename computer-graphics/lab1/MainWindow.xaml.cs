@@ -146,7 +146,6 @@ namespace lab1
         {
             CustomFilterWindow customFilterWindow = new CustomFilterWindow(ConvolutionFilters);
             customFilterWindow.ShowDialog();
-            customFilterWindow.Close();
         }
 
         private void InvertColors(object sender, RoutedEventArgs e)
