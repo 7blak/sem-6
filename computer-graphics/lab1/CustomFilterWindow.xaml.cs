@@ -29,7 +29,7 @@ namespace lab1
         {
             InitializeComponent();
             _originalFilters = convolutionFilters;
-            _currentFilter = convolutionFilters[0];
+            _currentFilter = convolutionFilters[convolutionFilters.Count - 1];
             _originalFilter = _currentFilter;
             InitializeForm();
         }
@@ -48,8 +48,8 @@ namespace lab1
 
             if (!finished)
             {
-                PresetComboBox.ItemsSource = Enum.GetValues(typeof(EnumConvolutionFilterType)).Cast<EnumConvolutionFilterType>();
-                PresetComboBox.SelectedIndex = 0;
+                PresetComboBox.ItemsSource = _originalFilters;
+                PresetComboBox.SelectedIndex = _originalFilters.Count - 1;
             }
 
             _rows = _currentFilter.Kernel.GetLength(0);
@@ -219,7 +219,14 @@ namespace lab1
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
+            PresetComboBox.SelectionChanged -= PresetChanged;
             Close();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            PresetComboBox.SelectionChanged -= PresetChanged;
+            base.OnClosed(e);
         }
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
@@ -238,6 +245,8 @@ namespace lab1
 
             MessageBox.Show($"Create action with:\nDivisor: {divisor}\nOffset: {offset}\nX: {x}\nY: {y}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
 
+            PresetComboBox.SelectionChanged -= PresetChanged;
+
             double[,] kernel = new double[_rows, _columns];
             for (int i = 0; i < _rows; i++)
             {
@@ -253,8 +262,13 @@ namespace lab1
                     }
                 }
             }
-            
-            _originalFilters.Add(new ConvolutionFilter(NameTextBox.Text, kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), EnumConvolutionFilterType.Default, offset));
+
+            var filterToReplace = _originalFilters.FirstOrDefault(filter => filter.Name == NameTextBox.Text);
+
+            if (filterToReplace != null)
+                _originalFilters[_originalFilters.IndexOf(filterToReplace)] = new ConvolutionFilter(NameTextBox.Text, kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset);
+            else
+                _originalFilters.Add(new ConvolutionFilter(NameTextBox.Text, kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset));
             Close();
         }
 
@@ -279,7 +293,7 @@ namespace lab1
         {
             if (sender is ComboBox comboBox && finished)
             {
-                _currentFilter = ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)comboBox.SelectedItem);
+                _currentFilter = (ConvolutionFilter)comboBox.SelectedItem;
                 InitializeForm();
             }
         }

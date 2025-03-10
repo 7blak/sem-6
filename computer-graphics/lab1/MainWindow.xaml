@@ -57,6 +57,7 @@
             </MenuItem>
             <MenuItem Header="Add Custom Filter" Click="CustomFilter_Click"/>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
+            <MenuItem Header="Reset Custom Filters" Click="ResetCustomFilters_Click"/>
         </Menu>
         <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top"/>
         <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top"/>

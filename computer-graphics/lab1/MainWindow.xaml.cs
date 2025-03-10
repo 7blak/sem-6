@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,8 +19,16 @@ namespace lab1
         public MainWindow()
         {
             InitializeComponent();
-            ConvolutionFilters = new ObservableCollection<ConvolutionFilter>([ConvolutionFilter.Default()]);
+            ConvolutionFilters = new ObservableCollection<ConvolutionFilter>();
+            SetFiltersToDefault();
             DataContext = this;
+        }
+
+        private void SetFiltersToDefault()
+        {
+            ConvolutionFilters.Clear();
+            foreach (var type in Enum.GetValues(typeof(EnumConvolutionFilterType)))
+                ConvolutionFilters.Add(ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)type));
         }
 
         private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
@@ -137,6 +146,7 @@ namespace lab1
         {
             CustomFilterWindow customFilterWindow = new CustomFilterWindow(ConvolutionFilters);
             customFilterWindow.ShowDialog();
+            customFilterWindow.Close();
         }
 
         private void InvertColors(object sender, RoutedEventArgs e)
@@ -214,6 +224,11 @@ namespace lab1
         private static int Clamp(int value)
         {
             return Math.Max(0, Math.Min(255, value));
+        }
+
+        private void ResetCustomFilters_Click(object sender, RoutedEventArgs e)
+        {
+            SetFiltersToDefault();
         }
     }
 }

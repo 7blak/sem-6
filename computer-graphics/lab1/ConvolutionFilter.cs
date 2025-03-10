@@ -15,9 +15,8 @@ namespace lab1
         public double Divisor { get { return _divisor; } set { _divisor = (value == 0) ? 1 : value; CalculateDividedKernel(); } }
         public Point Anchor { get; set; }
         public double Offset { get; set; }
-        public EnumConvolutionFilterType FilterType { get; set; }
 
-        public ConvolutionFilter(string name, double[,] kernel, double divisor, System.Windows.Point anchor, EnumConvolutionFilterType filterType, double offset = 0)
+        public ConvolutionFilter(string name, double[,] kernel, double divisor, System.Windows.Point anchor, double offset = 0)
         {
             Name = name;
             Kernel = new double[kernel.GetLength(0), kernel.GetLength(1)];
@@ -28,7 +27,6 @@ namespace lab1
             DividedKernel = new double[Kernel.GetLength(0), Kernel.GetLength(1)];
             Divisor = divisor;
             Anchor = anchor;
-            FilterType = filterType;
             Offset = offset;
         }
 
@@ -68,8 +66,7 @@ namespace lab1
                 { 0, 0, 0 }
             },
             1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Default
+            new Point(0, 0)
             );
         }
 
@@ -81,8 +78,7 @@ namespace lab1
                 { 1, 1, 1 }
             },
             9,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Blur
+            new Point(0, 0)
             );
         }
 
@@ -94,8 +90,7 @@ namespace lab1
                 { 1, 2, 1 }
             },
             16,
-            new Point(0, 0),
-            EnumConvolutionFilterType.GaussianBlur
+            new Point(0, 0)
             );
         }
 
@@ -107,8 +102,7 @@ namespace lab1
                 { 0, -1, 0 }
             },
             1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Sharpen
+            new Point(0, 0)
             );
         }
 
@@ -120,8 +114,7 @@ namespace lab1
                 { -1, -1, -1 }
             },
             1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.EdgeDetection
+            new Point(0, 0)
             );
         }
 
@@ -133,9 +126,13 @@ namespace lab1
                 { 0, 1, 2 }
             },
             1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Emboss
+            new Point(0, 0)
             );
+        }
+
+        public override string ToString()
+        {
+            return Name;
         }
     }
 }
