@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,14 +21,16 @@ namespace lab1
         private int _columns = 3;
         private TextBox[,] _gridCells = new TextBox[9, 9];
         private readonly ConvolutionFilter _originalFilter;
-        public ConvolutionFilter Filter { get; set; }
+        private ObservableCollection<ConvolutionFilter> _originalFilters;
+        private ConvolutionFilter _currentFilter { get; set; }
         private bool finished = false;
 
-        public CustomFilterWindow(ConvolutionFilter convolutionFilter)
+        public CustomFilterWindow(ObservableCollection<ConvolutionFilter> convolutionFilters)
         {
             InitializeComponent();
-            _originalFilter = convolutionFilter;
-            Filter = convolutionFilter;
+            _originalFilters = convolutionFilters;
+            _currentFilter = convolutionFilters[convolutionFilters.Count - 1];
+            _originalFilter = _currentFilter;
             InitializeForm();
         }
 
@@ -35,29 +38,31 @@ namespace lab1
         {
             int[] values = { 1, 3, 5, 7, 9 };
 
-            DivisorTextBox.Text = Filter.Divisor.ToString();
-            OffsetTextBox.Text = Filter.Offset.ToString();
+            DivisorTextBox.Text = _currentFilter.Divisor.ToString();
+            OffsetTextBox.Text = _currentFilter.Offset.ToString();
+
+            NameTextBox.Text = _currentFilter.Name;
 
             RowsComboBox.ItemsSource = values;
             ColumnsComboBox.ItemsSource = values;
 
             if (!finished)
             {
-                PresetComboBox.ItemsSource = Enum.GetValues(typeof(EnumConvolutionFilterType)).Cast<EnumConvolutionFilterType>();
-                PresetComboBox.SelectedIndex = 0;
+                PresetComboBox.ItemsSource = _originalFilters;
+                PresetComboBox.SelectedIndex = _originalFilters.Count - 1;
             }
 
-            _rows = Filter.Kernel.GetLength(0);
-            _columns = Filter.Kernel.GetLength(1);
+            _rows = _currentFilter.Kernel.GetLength(0);
+            _columns = _currentFilter.Kernel.GetLength(1);
 
-            XTextBox.Text = (Filter.Anchor.X + _columns / 2).ToString();
-            YTextBox.Text = (Filter.Anchor.Y + _rows / 2).ToString();
+            XTextBox.Text = (_currentFilter.Anchor.X + _columns / 2).ToString();
+            YTextBox.Text = (_currentFilter.Anchor.Y + _rows / 2).ToString();
 
             RowsComboBox.SelectedItem = _rows;
             ColumnsComboBox.SelectedItem = _columns;
 
             CreateGrid();
-            _gridCells[(int)Filter.Anchor.Y + _rows / 2, (int)Filter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
+            _gridCells[(int)_currentFilter.Anchor.Y + _rows / 2, (int)_currentFilter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
             finished = true;
         }
         private void RowsColumnsChanged(object sender, SelectionChangedEventArgs e)
@@ -113,7 +118,7 @@ namespace lab1
                         Background = Brushes.White,
                         BorderBrush = Brushes.Black,
                         Margin = new Thickness(0),
-                        Text = (i < Filter.Kernel.GetLength(0) && j < Filter.Kernel.GetLength(1)) ? Filter.Kernel[i, j].ToString() : ""
+                        Text = (i < _currentFilter.Kernel.GetLength(0) && j < _currentFilter.Kernel.GetLength(1)) ? _currentFilter.Kernel[i, j].ToString() : ""
                     };
                     cell.TextChanged += GridCellTextChanged;
                     cell.LostFocus += GridCellLostFocus;
@@ -149,7 +154,7 @@ namespace lab1
                         _gridCells[i, j].IsEnabled = (i < _rows && j < _columns);
                         if (_gridCells[i, j].IsEnabled)
                         {
-                            _gridCells[i, j].Text = _gridCells[i, j].Text == "" ? (i < Filter.Kernel.GetLength(0) && j < Filter.Kernel.GetLength(1) ? Filter.Kernel[i, j].ToString() : "0") : _gridCells[i, j].Text;
+                            _gridCells[i, j].Text = _gridCells[i, j].Text == "" ? (i < _currentFilter.Kernel.GetLength(0) && j < _currentFilter.Kernel.GetLength(1) ? _currentFilter.Kernel[i, j].ToString() : "0") : _gridCells[i, j].Text;
                             _gridCells[i, j].Background = Brushes.White;
                         }
                         else
@@ -217,6 +222,12 @@ namespace lab1
             Close();
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            PresetComboBox.SelectionChanged -= PresetChanged;
+            base.OnClosed(e);
+        }
+
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
             ValidateDivisor(DivisorTextBox, null!);
@@ -232,6 +243,8 @@ namespace lab1
             }
 
             MessageBox.Show($"Create action with:\nDivisor: {divisor}\nOffset: {offset}\nX: {x}\nY: {y}", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            PresetComboBox.SelectionChanged -= PresetChanged;
 
             double[,] kernel = new double[_rows, _columns];
             for (int i = 0; i < _rows; i++)
@@ -249,7 +262,12 @@ namespace lab1
                 }
             }
 
-            Filter = new ConvolutionFilter(kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), EnumConvolutionFilterType.Custom, offset);
+            var filterToReplace = _originalFilters.FirstOrDefault(filter => filter.Name == NameTextBox.Text);
+
+            if (filterToReplace != null)
+                _originalFilters[_originalFilters.IndexOf(filterToReplace)] = new ConvolutionFilter(NameTextBox.Text, kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset);
+            else
+                _originalFilters.Add(new ConvolutionFilter(NameTextBox.Text, kernel, divisor, new Point(x - _columns / 2, y - _rows / 2), offset));
             Close();
         }
 
@@ -274,14 +292,14 @@ namespace lab1
         {
             if (sender is ComboBox comboBox && finished)
             {
-                Filter = ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)comboBox.SelectedItem);
+                _currentFilter = (ConvolutionFilter)comboBox.SelectedItem;
                 InitializeForm();
             }
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
-            Filter = _originalFilter;
+            _currentFilter = _originalFilter;
             InitializeForm();
         }
 

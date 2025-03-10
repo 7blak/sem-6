@@ -1,6 +1,12 @@
 ﻿using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Point = System.Windows.Point;
 
@@ -10,20 +16,21 @@ namespace lab1
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
-        public ConvolutionFilter CustomConvolutionFilter { get; set; }
-
+        public ObservableCollection<ConvolutionFilter> ConvolutionFilters { get; set; }
+        
         public MainWindow()
         {
             InitializeComponent();
-            CustomConvolutionFilter = new ConvolutionFilter(new double[3, 3] {
-            { 0, 0, 0 },
-            { 0, 1, 0 },
-            { 0, 0, 0 }
-            },
-            1,
-            new Point(0, 0),
-            EnumConvolutionFilterType.Custom
-            );
+            ConvolutionFilters = new ObservableCollection<ConvolutionFilter>();
+            SetFiltersToDefault();
+            DataContext = this;
+        }
+
+        private void SetFiltersToDefault()
+        {
+            ConvolutionFilters.Clear();
+            foreach (var type in Enum.GetValues(typeof(EnumConvolutionFilterType)))
+                ConvolutionFilters.Add(ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)type));
         }
 
         private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
@@ -65,6 +72,8 @@ namespace lab1
             int width = filteredImage.PixelWidth;
             int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
             byte[] pixels = new byte[height * stride];
+            int halfKernelHeight = (filter.Kernel.GetLength(0)) / 2;
+            int halfKernelWidth = (filter.Kernel.GetLength(1)) / 2;
             filteredImage.CopyPixels(pixels, stride, 0);
             filteredImage.Lock();
             unsafe
@@ -76,16 +85,17 @@ namespace lab1
                     {
                         int index = y * stride + x * bytesPerPixel;
                         double r = 0, g = 0, b = 0;
-                        for (int ky = -1; ky <= 1; ky++)
+                        for (int ky = -halfKernelHeight; ky <= halfKernelHeight; ky++)
                         {
-                            for (int kx = -1; kx <= 1; kx++)
+                            for (int kx = -halfKernelWidth; kx <= halfKernelWidth; kx++)
                             {
                                 int neighborX = Math.Max(0, Math.Min(width - 1, x + kx + (int)filter.Anchor.X));
                                 int neighborY = Math.Max(0, Math.Min(height - 1, y + ky + (int)filter.Anchor.Y));
                                 int kernelIndex = neighborY * stride + neighborX * bytesPerPixel;
-                                r += pixels[kernelIndex + 2] * filter.DividedKernel[ky + 1, kx + 1];
-                                g += pixels[kernelIndex + 1] * filter.DividedKernel[ky + 1, kx + 1];
-                                b += pixels[kernelIndex] * filter.DividedKernel[ky + 1, kx + 1];
+
+                                r += pixels[kernelIndex + 2] * filter.DividedKernel[ky + halfKernelHeight, kx + halfKernelWidth];
+                                g += pixels[kernelIndex + 1] * filter.DividedKernel[ky + halfKernelHeight, kx + halfKernelWidth];
+                                b += pixels[kernelIndex] * filter.DividedKernel[ky + halfKernelHeight, kx + halfKernelWidth];
                             }
                         }
                         buffer[index] = (byte)Math.Clamp(b + filter.Offset, 0, 255);
@@ -100,6 +110,61 @@ namespace lab1
             FilteredImage.Source = filteredImage;
         }
 
+        private void ApplyMorphology(bool isErosion)
+        {
+            if (filteredImage == null)
+                return;
+            int stride = filteredImage.BackBufferStride;
+            int height = filteredImage.PixelHeight;
+            int width = filteredImage.PixelWidth;
+            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            byte[] pixels = new byte[height * stride];
+            filteredImage.CopyPixels(pixels, stride, 0);
+            filteredImage.Lock();
+            unsafe
+            {
+                byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        int minOrMaxR = isErosion ? 255 : 0;
+                        int minOrMaxG = isErosion ? 255 : 0;
+                        int minOrMaxB = isErosion ? 255 : 0;
+
+                        for (int ky = -1; ky <= 1; ky++)
+                        {
+                            for (int kx = -1; kx <= 1; kx++)
+                            {
+                                int neighborX = Math.Max(0, Math.Min(x + kx, width - 1));
+                                int neighborY = Math.Max(0, Math.Min(y + ky, height - 1));
+                                int neighborIndex = (neighborY * stride) + (neighborX * bytesPerPixel);
+
+                                byte r = pixels[neighborIndex + 2];
+                                byte g = pixels[neighborIndex + 1];
+                                byte b = pixels[neighborIndex];
+
+                                minOrMaxR = isErosion ? Math.Min(minOrMaxR, r) : Math.Max(minOrMaxR, r);
+                                minOrMaxG = isErosion ? Math.Min(minOrMaxG, g) : Math.Max(minOrMaxG, g);
+                                minOrMaxB = isErosion ? Math.Min(minOrMaxB, b) : Math.Max(minOrMaxB, b);
+
+                            }
+                        }
+
+                        int index = (y * stride) + (x * bytesPerPixel);
+                        buffer[index] = (byte)minOrMaxB;
+                        buffer[index + 1] = (byte)minOrMaxG;
+                        buffer[index + 2] = (byte)minOrMaxR;
+                        buffer[index + 3] = 255;
+                    }
+                }
+            }
+
+            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            filteredImage.Unlock();
+            FilteredImage.Source = filteredImage;
+        }
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Image Files|*.jpg;*.png;*.bmp" };
@@ -139,9 +204,8 @@ namespace lab1
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
-            CustomFilterWindow customFilterWindow = new CustomFilterWindow(CustomConvolutionFilter);
+            CustomFilterWindow customFilterWindow = new CustomFilterWindow(ConvolutionFilters);
             customFilterWindow.ShowDialog();
-            CustomConvolutionFilter = customFilterWindow.Filter;
         }
 
         private void InvertColors(object sender, RoutedEventArgs e)
@@ -185,7 +249,10 @@ namespace lab1
 
         private void CustomFilterApply_Click(object sender, RoutedEventArgs e)
         {
-            ApplyConvolutionFilter(CustomConvolutionFilter);
+            if (sender is MenuItem menuItem && menuItem.DataContext is ConvolutionFilter selectedFilter)
+                ApplyConvolutionFilter(selectedFilter);
+            else
+                MessageBox.Show("Something went wrong with applying the filter.", "Error");
         }
 
         private void BlurFilter_Click(object sender, RoutedEventArgs e)
@@ -216,6 +283,21 @@ namespace lab1
         private static int Clamp(int value)
         {
             return Math.Max(0, Math.Min(255, value));
+        }
+
+        private void ResetCustomFilters_Click(object sender, RoutedEventArgs e)
+        {
+            SetFiltersToDefault();
+        }
+
+        private void ApplyErosion_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyMorphology(true);
+        }
+
+        private void ApplyDilation_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyMorphology(false);
         }
     }
 }

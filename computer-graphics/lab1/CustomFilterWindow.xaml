@@ -76,6 +76,8 @@
 
             <TextBlock Grid.Row="2" Text="Offset:" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0"/>
             <TextBox Grid.Row="2" Grid.Column="1" x:Name="OffsetTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="Name:" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0"/>
+            <TextBox Grid.Row="2" Grid.Column="3" x:Name="NameTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
             <TextBlock Grid.Row="4" Text="Anchor X:" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0"/>
             <TextBox Grid.Row="4" Grid.Column="1" x:Name="XTextBox" Width="100" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" SelectionChanged="AnchorChange" LostFocus="AnchorTextBoxLostFocus"/>
