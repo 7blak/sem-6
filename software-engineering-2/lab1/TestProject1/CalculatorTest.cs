@@ -1,9 +1,9 @@
 using lab1;
 
-namespace TestProject1
+namespace lab1Test
 {
     [TestClass]
-    public class UnitTest1
+    public class CalculatorTest
     {
         [TestMethod]
         public void EmptyStringTest()
