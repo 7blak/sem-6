@@ -21,7 +21,7 @@ namespace lab1
         public MainWindow()
         {
             InitializeComponent();
-            ConvolutionFilters = new ObservableCollection<ConvolutionFilter>();
+            ConvolutionFilters = [];
             SetFiltersToDefault();
             DataContext = this;
         }
@@ -29,7 +29,7 @@ namespace lab1
         private void SetFiltersToDefault()
         {
             ConvolutionFilters.Clear();
-            foreach (var type in Enum.GetValues(typeof(EnumConvolutionFilterType)))
+            foreach (var type in Enum.GetValues<EnumConvolutionFilterType>())
                 ConvolutionFilters.Add(ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)type));
         }
 
@@ -167,7 +167,7 @@ namespace lab1
         }
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Image Files|*.jpg;*.png;*.bmp" };
+            OpenFileDialog openFileDialog = new() { Filter = "Image Files|*.jpg;*.png;*.bmp" };
             if (openFileDialog.ShowDialog() == true)
             {
                 originalImage = new BitmapImage(new Uri(openFileDialog.FileName));
@@ -181,15 +181,13 @@ namespace lab1
         {
             if (filteredImage != null)
             {
-                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "PNG Image|*.png" };
+                SaveFileDialog saveFileDialog = new() { Filter = "PNG Image|*.png" };
                 if (saveFileDialog.ShowDialog() == true)
                 {
-                    using (FileStream stream = new FileStream(saveFileDialog.FileName, FileMode.Create))
-                    {
-                        PngBitmapEncoder encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(filteredImage));
-                        encoder.Save(stream);
-                    }
+                    using FileStream stream = new(saveFileDialog.FileName, FileMode.Create);
+                    PngBitmapEncoder encoder = new();
+                    encoder.Frames.Add(BitmapFrame.Create(filteredImage));
+                    encoder.Save(stream);
                 }
             }
         }
@@ -204,7 +202,7 @@ namespace lab1
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
         {
-            CustomFilterWindow customFilterWindow = new CustomFilterWindow(ConvolutionFilters);
+            CustomFilterWindow customFilterWindow = new(ConvolutionFilters);
             customFilterWindow.ShowDialog();
         }
 
