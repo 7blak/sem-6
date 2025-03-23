@@ -41,7 +41,7 @@ public class Engine {
         runAgent(container, "DeliveryWolt", "DeliveryAgent", "agents",
                 new Object[] {15.50});
         runAgent(container, "Client1", "ClientAgent", "agents",
-                new Object[] {List.of("milk", "coffee" , "rice")});
+                new Object[] {List.of("milk", "coffee", "rice")});
         runAgent(container, "MarketBiedronka", "MarketAgent", "agents",
                 new Object[] {Map.of("milk", 5.00, "rice", 3.40 )});
         runAgent(container, "MarketOsiedlowy", "MarketAgent", "agents",
