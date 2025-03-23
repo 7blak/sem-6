@@ -1,0 +1,3 @@
+[submodule "software-engineering-2/dvs"]
+	path = software-engineering-2/dvs
+	url = https://github.com/zanpatryk/dvs
