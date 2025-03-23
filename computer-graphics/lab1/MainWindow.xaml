@@ -63,7 +63,7 @@
                 <MenuItem Header="Dilation" Click="ApplyDilation_Click" Foreground="Black"/>
             </MenuItem>
         </Menu>
-        <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="None"/>
-        <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="None"/>
+        <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>
+        <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>
     </Grid>
 </Window>
