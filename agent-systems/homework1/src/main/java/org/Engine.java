@@ -33,7 +33,7 @@ public class Engine {
         }
     }
 
-    private static void runGroceryTask(final ContainerController container) {
+    private static void runGroceryTask(final ContainerController container) throws InterruptedException {
         runAgent(container, "DeliveryBolt", "DeliveryAgent", "agents",
                 new Object[] {5.00});
         runAgent(container, "DeliveryUber", "DeliveryAgent", "agents",

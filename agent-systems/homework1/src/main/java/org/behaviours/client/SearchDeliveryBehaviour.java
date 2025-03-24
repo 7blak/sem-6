@@ -1,4 +1,4 @@
-package org.behaviours;
+package org.behaviours.client;
 
 import jade.core.AID;
 import jade.core.behaviours.WakerBehaviour;
@@ -20,11 +20,10 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
 
     @Override
     protected void onWake() {
-        System.out.printf("[%s] I'm searching for avaiable markets...\n", _clientAgent.getLocalName());
+        System.out.printf("[%s] I'm searching for avaiable delivery services...\n", _clientAgent.getLocalName());
 
         final ServiceDescription sd = new ServiceDescription();
         sd.setType("delivery");
-        sd.setName("Delivery");
 
         try {
             final DFAgentDescription dfd = new DFAgentDescription();
@@ -39,6 +38,8 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
             _clientAgent.get_delivery().addAll(deliveries);
         } catch (final Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            _clientAgent.addBehaviour(new MakeOrderBehaviour(_clientAgent));
         }
     }
 }
