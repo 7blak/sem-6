@@ -2,31 +2,35 @@ package org.agents;
 
 import jade.core.Agent;
 import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
+import lombok.Getter;
+import org.behaviours.market.SellItemsBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
 import java.util.Map;
 
+@Getter
 public class MarketAgent extends Agent {
     private Map<String, Double> _stock;
 
-    @SuppressWarnings("unchecked")
     @Override
     protected void setup() {
         final Object[] args = getArguments();
+        //noinspection unchecked
         _stock = (Map<String, Double>) args[0];
 
-        System.out.printf("[%s} Open for business! Current stock is: %s\n", getLocalName(), _stock.toString());
+        System.out.printf("[%s] Open for business! Current stock is: %s\n", getLocalName(), _stock.toString());
         registerMarketService();
+
+        addBehaviour(new SellItemsBehaviour(this));
     }
 
     private void registerMarketService() {
         final ServiceDescription sd = new ServiceDescription();
         sd.setType("market");
-        sd.setName("Market");
-        sd.setOwnership(this.getLocalName());
+        sd.setName(getLocalName());
+        sd.setOwnership(getLocalName());
 
         try {
             final DFAgentDescription dfd = new DFAgentDescription();

@@ -1,4 +1,4 @@
-package org.behaviours;
+package org.behaviours.delivery;
 
 import jade.core.AID;
 import jade.core.behaviours.WakerBehaviour;
@@ -6,6 +6,7 @@ import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import org.agents.DeliveryAgent;
+import org.exceptions.InvalidServiceSpecification;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,11 +21,10 @@ public class SearchMarketBehaviour extends WakerBehaviour {
 
     @Override
     protected void onWake() {
-        System.out.printf("[%s] I'm searching for avaiable markets...\n", _deliveryAgent.getLocalName());
+        System.out.printf("[%s] I'm searching for available markets...\n", _deliveryAgent.getLocalName());
 
         final ServiceDescription sd = new ServiceDescription();
         sd.setType("market");
-        sd.setName("Market");
 
         try {
             final DFAgentDescription dfd = new DFAgentDescription();
@@ -38,7 +38,9 @@ public class SearchMarketBehaviour extends WakerBehaviour {
             markets.forEach(market -> System.out.printf("[%s] Found market: %s\n", _deliveryAgent.getLocalName(), market));
             _deliveryAgent.get_markets().addAll(markets);
         } catch (final Exception e) {
-            throw new RuntimeException(e);
+            throw new InvalidServiceSpecification(e);
+        } finally {
+            _deliveryAgent.addBehaviour(new ReceiveOrderBehaviour(_deliveryAgent));
         }
     }
 }
