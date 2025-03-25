@@ -8,6 +8,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import lombok.Getter;
 import lombok.Setter;
+import org.Util;
 import org.behaviours.delivery.SearchMarketBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
@@ -31,7 +32,7 @@ public class DeliveryAgent extends Agent {
         _markets = new ArrayList<>();
         _order = new ArrayList<>();
 
-        System.out.printf("[%s] Ready to deliver! My delivery fee is: %.2f\n", getLocalName(), _deliveryFee);
+        Util.log(this, "Ready to deliver! My delivery fee is: " + _deliveryFee);
         registerDeliveryService();
 
         addBehaviour(new SearchMarketBehaviour(this, 2000));

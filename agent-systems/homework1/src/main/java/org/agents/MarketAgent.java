@@ -5,6 +5,7 @@ import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import lombok.Getter;
+import org.Util;
 import org.behaviours.market.SellItemsBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
@@ -20,7 +21,7 @@ public class MarketAgent extends Agent {
         //noinspection unchecked
         _stock = (Map<String, Double>) args[0];
 
-        System.out.printf("[%s] Open for business! Current stock is: %s\n", getLocalName(), _stock.toString());
+        Util.log(this, "Open for business! Current stock is: " + _stock.toString());
         registerMarketService();
 
         addBehaviour(new SellItemsBehaviour(this));

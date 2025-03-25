@@ -4,6 +4,7 @@ import jade.core.AID;
 import jade.core.Agent;
 import lombok.Getter;
 import lombok.Setter;
+import org.Util;
 import org.behaviours.client.SearchDeliveryBehaviour;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ public class ClientAgent extends Agent {
         _order = (List<String>) args[0];
         _delivery = new ArrayList<>();
 
-        System.out.printf("[%s] Ready to order! My order list is: %s\n", getLocalName(), _order.toString());
+        Util.log(this, "Ready to order! My order list is: " + _order.toString());
         addBehaviour(new SearchDeliveryBehaviour(this, 4000));
     }
 }
