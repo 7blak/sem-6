@@ -5,6 +5,7 @@ import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import org.Util;
 import org.agents.ClientAgent;
 
 import java.util.Arrays;
@@ -20,7 +21,7 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
 
     @Override
     protected void onWake() {
-        System.out.printf("[%s] I'm searching for avaiable delivery services...\n", _clientAgent.getLocalName());
+        Util.log(_clientAgent, "Searching for avaiable delivery services...");
 
         final ServiceDescription sd = new ServiceDescription();
         sd.setType("delivery");
@@ -34,7 +35,7 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
                     .map(DFAgentDescription::getName)
                     .toList();
 
-            deliveries.forEach(delivery -> System.out.printf("[%s] Found delivery service: %s\n", _clientAgent.getLocalName(), delivery));
+            deliveries.forEach(delivery -> Util.log(_clientAgent, "Found delivery service: " + delivery));
             _clientAgent.get_delivery().addAll(deliveries);
         } catch (final Exception e) {
             throw new RuntimeException(e);
