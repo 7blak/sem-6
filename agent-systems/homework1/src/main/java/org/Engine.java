@@ -47,6 +47,6 @@ public class Engine {
         runAgent(container, "MarketOsiedlowy", "MarketAgent", "agents",
                 new Object[] {Map.of("rice", 1.00)});
         runAgent(container, "MarketŻabka", "MarketAgent", "agents",
-                new Object[] {Map.of("coffee", 7.50, "milk", 6.39, "rice", 4.10)});
+                new Object[] {Map.of("coffee", 7.50, "milk", 6.39)});
     }
 }

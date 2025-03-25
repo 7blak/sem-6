@@ -39,7 +39,8 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
-            _clientAgent.addBehaviour(new MakeOrderBehaviour(_clientAgent));
+            _clientAgent.addBehaviour(new SendOrderBehaviour(_clientAgent));
+            _clientAgent.addBehaviour(new SelectOfferBehaviour(_clientAgent, 8000));
         }
     }
 }

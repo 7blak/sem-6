@@ -5,7 +5,7 @@ import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import lombok.Getter;
-import org.behaviours.market.SellProductsBehaviour;
+import org.behaviours.market.SellItemsBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
 import java.util.Map;
@@ -23,7 +23,7 @@ public class MarketAgent extends Agent {
         System.out.printf("[%s] Open for business! Current stock is: %s\n", getLocalName(), _stock.toString());
         registerMarketService();
 
-        addBehaviour(new SellProductsBehaviour(this));
+        addBehaviour(new SellItemsBehaviour(this));
     }
 
     private void registerMarketService() {

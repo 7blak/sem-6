@@ -21,6 +21,8 @@ public class DeliveryAgent extends Agent {
     private List<AID> _markets;
     @Setter
     private List<String> _order;
+    @Setter
+    private AID _client;
 
     @Override
     protected void setup() {
