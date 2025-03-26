@@ -8,12 +8,14 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import lombok.Getter;
 import lombok.Setter;
+import org.Engine;
 import org.Util;
 import org.behaviours.delivery.SearchMarketBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 @Getter
 public class DeliveryAgent extends Agent {
@@ -24,6 +26,7 @@ public class DeliveryAgent extends Agent {
     private List<String> _order;
     @Setter
     private AID _client;
+    public static CountDownLatch _latch = new CountDownLatch(Engine.deliveryAgentNumber);
 
     @Override
     protected void setup() {
@@ -35,7 +38,17 @@ public class DeliveryAgent extends Agent {
         Util.log(this, "Ready to deliver! My delivery fee is: " + _deliveryFee);
         registerDeliveryService();
 
-        addBehaviour(new SearchMarketBehaviour(this, 2000));
+
+        //noinspection LoopStatementThatDoesntLoop
+        while (true) {
+            try {
+                MarketAgent._latch.await();
+                break;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        addBehaviour(new SearchMarketBehaviour(this));
     }
 
     private void registerDeliveryService() {
@@ -51,6 +64,8 @@ public class DeliveryAgent extends Agent {
 
         } catch (final FIPAException e) {
             throw new InvalidServiceSpecification(e);
+        } finally {
+            _latch.countDown();
         }
     }
 }

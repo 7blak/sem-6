@@ -5,15 +5,18 @@ import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import lombok.Getter;
+import org.Engine;
 import org.Util;
 import org.behaviours.market.SellItemsBehaviour;
 import org.exceptions.InvalidServiceSpecification;
 
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 @Getter
 public class MarketAgent extends Agent {
     private Map<String, Double> _stock;
+    public static CountDownLatch _latch = new CountDownLatch(Engine.marketAgentNumber);
 
     @Override
     protected void setup() {
@@ -39,6 +42,8 @@ public class MarketAgent extends Agent {
             DFService.register(this, dfd);
         } catch (FIPAException e) {
             throw new InvalidServiceSpecification(e);
+        } finally {
+            _latch.countDown();
         }
     }
 }

@@ -26,7 +26,7 @@ public class SendOrderBehaviour extends OneShotBehaviour {
             ACLMessage orderMsg = new ACLMessage(ACLMessage.REQUEST);
             orderMsg.setContent(orderContent);
             orderMsg.addReceiver(delivery);
-            orderMsg.setConversationId("convo-order");
+            orderMsg.setConversationId(String.format("convo-order-%s", _clientAgent.getLocalName()));
 
             Util.log(_clientAgent, "Order sent to [" + delivery.getLocalName() + "]");
             _clientAgent.send(orderMsg);

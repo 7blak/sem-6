@@ -24,6 +24,16 @@ public class ClientAgent extends Agent {
         _delivery = new ArrayList<>();
 
         Util.log(this, "Ready to order! My order list is: " + _order.toString());
-        addBehaviour(new SearchDeliveryBehaviour(this, 4000));
+
+        //noinspection LoopStatementThatDoesntLoop
+        while(true) {
+            try {
+                DeliveryAgent._latch.await();
+                break;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        addBehaviour(new SearchDeliveryBehaviour(this));
     }
 }

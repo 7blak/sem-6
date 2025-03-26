@@ -19,7 +19,7 @@ public class SellItemsBehaviour extends CyclicBehaviour {
     @Override
     public void action() {
         ACLMessage msg = _marketAgent.receive();
-        if (msg != null && "convo-stock-query".equals(msg.getConversationId())) {
+        if (msg != null && String.format("convo-stock-query-%s", msg.getSender().getLocalName()).equals(msg.getConversationId())) {
             ACLMessage reply = msg.createReply();
             reply.setPerformative(ACLMessage.INFORM);
             StringBuilder stockContent = new StringBuilder();
@@ -33,7 +33,7 @@ public class SellItemsBehaviour extends CyclicBehaviour {
             }
 
             reply.setContent(stockContent.toString());
-            reply.setConversationId("convo-stock-query");
+            reply.setConversationId(String.format("convo-stock-query-%s", msg.getSender().getLocalName()));
             Util.log(_marketAgent, "->\t[" + msg.getSender().getLocalName() + "] Replied with stock: " + stockContent);
             _marketAgent.send(reply);
         } else {

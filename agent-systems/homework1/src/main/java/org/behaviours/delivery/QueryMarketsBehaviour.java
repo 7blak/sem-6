@@ -11,34 +11,38 @@ import java.util.*;
 
 public class QueryMarketsBehaviour extends Behaviour {
     private final DeliveryAgent _deliveryAgent;
-    private final long startTime;
-    private final Map<AID, Map<String, Double>> marketStocks = new HashMap<>();
-    private boolean queriesSent = false;
+    private final long _startTime;
+    private final Map<AID, Map<String, Double>> _marketStocks = new HashMap<>();
+    private final AID _clientAID;
+    private final List<String> _clientOrder;
+    private boolean _queriesSent = false;
 
-    public QueryMarketsBehaviour(DeliveryAgent deliveryAgent) {
+    public QueryMarketsBehaviour(DeliveryAgent deliveryAgent, AID clientAID, List<String> clientOrder) {
         super(deliveryAgent);
         _deliveryAgent = deliveryAgent;
-        startTime = System.currentTimeMillis();
+        _startTime = System.currentTimeMillis();
+        _clientAID = clientAID;
+        _clientOrder = clientOrder;
     }
 
     @Override
     public void action() {
-        if (!queriesSent) {
+        if (!_queriesSent) {
             ACLMessage query = new ACLMessage(ACLMessage.REQUEST);
-            query.setConversationId("convo-stock-query");
+            query.setConversationId(String.format("convo-stock-query-%s", _deliveryAgent.getLocalName()));
             for (AID market : _deliveryAgent.get_markets()) {
                 query.addReceiver(market);
             }
             Util.log(_deliveryAgent, "Sending stock queries to markets...");
             _deliveryAgent.send(query);
-            queriesSent = true;
+            _queriesSent = true;
         }
 
         ACLMessage msg;
-        while (marketStocks.size() < _deliveryAgent.get_markets().size() && (msg = _deliveryAgent.blockingReceive(MessageTemplate.MatchConversationId("convo-stock-query"))) != null) {
+        while (_marketStocks.size() < _deliveryAgent.get_markets().size() && (msg = _deliveryAgent.blockingReceive(MessageTemplate.MatchConversationId(String.format("convo-stock-query-%s", _deliveryAgent.getLocalName())))) != null) {
             Map<String, Double> stock = parseStock(msg.getContent());
-            marketStocks.put(msg.getSender(), stock);
-            Util.log(_deliveryAgent, "<-\t[" + msg.getSender().getLocalName() + "] Received stock from market");
+            _marketStocks.put(msg.getSender(), stock);
+            Util.log(_deliveryAgent, "<- [" + msg.getSender().getLocalName() + "] Received stock from market");
         }
         block(500);
     }
@@ -69,12 +73,12 @@ public class QueryMarketsBehaviour extends Behaviour {
     @Override
     public boolean done() {
         long timeout = 4000;
-        return (System.currentTimeMillis() - startTime > timeout) || (marketStocks.size() == _deliveryAgent.get_markets().size());
+        return (System.currentTimeMillis() - _startTime > timeout) || (_marketStocks.size() == _deliveryAgent.get_markets().size());
     }
 
     @Override
     public int onEnd() {
-        List<String> remainingItems = new ArrayList<>(_deliveryAgent.get_order());
+        List<String> remainingItems = new ArrayList<>(_clientOrder);
         double totalCost = 0.0;
 
         while (!remainingItems.isEmpty()) {
@@ -83,7 +87,7 @@ public class QueryMarketsBehaviour extends Behaviour {
             int maxItemsCount = 0;
             double selectedMarketCost = 0.0;
 
-            for (Map.Entry<AID, Map<String, Double>> entry : marketStocks.entrySet()) {
+            for (Map.Entry<AID, Map<String, Double>> entry : _marketStocks.entrySet()) {
                 AID market = entry.getKey();
                 Map<String, Double> stock = entry.getValue();
                 List<String> avaiableItems = new ArrayList<>();
@@ -119,13 +123,13 @@ public class QueryMarketsBehaviour extends Behaviour {
             totalCost += selectedMarketCost;
             Util.log(_deliveryAgent, "Selected market " + selectedMarket.getLocalName() + " for items " + selectedItems + " with cost " + String.format(Locale.US, "%.2f", selectedMarketCost));
         }
-
+        
         totalCost += _deliveryAgent.get_deliveryFee();
         Util.log(_deliveryAgent, "Total order cost: " + String.format(Locale.US, "%.2f", totalCost));
 
         ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
-        reply.addReceiver(_deliveryAgent.get_client());
-        reply.setConversationId("convo-order");
+        reply.addReceiver(_clientAID);
+        reply.setConversationId(String.format("convo-order-%s", _clientAID.getLocalName()));
         reply.setContent(String.format(Locale.US, "%.2f", totalCost));
 
         Util.log(_deliveryAgent, "Sending price " + String.format(Locale.US, "%.2f", totalCost));

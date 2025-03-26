@@ -19,14 +19,12 @@ public class ReceiveOrderBehaviour extends CyclicBehaviour {
     @Override
     public void action() {
         ACLMessage msg = _deliveryAgent.receive();
-        if (msg != null && "convo-order".equals(msg.getConversationId())) {
-            Util.log(_deliveryAgent, "Received order: " + msg.getContent());
+        if (msg != null && String.format("convo-order-%s", msg.getSender().getLocalName()).equals(msg.getConversationId())) {
+            Util.log(_deliveryAgent, "-> [" + msg.getSender().getLocalName() + "] Received order: " + msg.getContent());
 
-            _deliveryAgent.set_client(msg.getSender());
             List<String> orderItems = Arrays.asList(msg.getContent().split(","));
-            _deliveryAgent.set_order(orderItems);
 
-            _deliveryAgent.addBehaviour(new QueryMarketsBehaviour(_deliveryAgent));
+            _deliveryAgent.addBehaviour(new QueryMarketsBehaviour(_deliveryAgent, msg.getSender(), orderItems));
         } else {
             block();
         }
