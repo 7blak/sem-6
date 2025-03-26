@@ -61,14 +61,11 @@ public class SelectOfferBehaviour extends Behaviour {
                     System.out.println("-----RESULTS-----");
                 _latch.countDown();
 
-                //noinspection LoopStatementThatDoesntLoop
                 while (true) {
                     try {
                         _latch.await();
                         break;
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                    } catch (InterruptedException ignored) {}
                 }
                 Util.log(_clientAgent, "Selected delivery agent: " + bestDelivery.getLocalName() + " with price " + String.format(Locale.US, "%.2f (Received offers was: %d)", bestPrice, --receivedMessages));
             }

@@ -39,14 +39,11 @@ public class DeliveryAgent extends Agent {
         registerDeliveryService();
 
 
-        //noinspection LoopStatementThatDoesntLoop
         while (true) {
             try {
                 MarketAgent._latch.await();
                 break;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            } catch (InterruptedException ignored) {}
         }
         addBehaviour(new SearchMarketBehaviour(this));
     }
