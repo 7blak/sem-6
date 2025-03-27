@@ -7,19 +7,6 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="900" Width="1600" WindowStyle="ThreeDBorderWindow" MinHeight="300" MinWidth="300">
     <Grid>
-        <Grid.Background>
-            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0" Opacity="0.2">
-                <GradientStop Color="Red" Offset="1"/>
-                <GradientStop Color="Red"/>
-                <GradientStop Color="#FFE17100" Offset="0.883"/>
-                <GradientStop Color="#FF9BB500" Offset="0.739"/>
-                <GradientStop Color="#FF0FBE00" Offset="0.622"/>
-                <GradientStop Color="#FF00CBAA" Offset="0.491"/>
-                <GradientStop Color="#FF002CDC" Offset="0.343"/>
-                <GradientStop Color="#FF67008F" Offset="0.222"/>
-                <GradientStop Color="#FF8F2C90" Offset="0.109"/>
-            </LinearGradientBrush>
-        </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition/>
@@ -33,35 +20,30 @@
                 <MenuItem Header="Open file..." Click="OpenFile_Click" Foreground="Black"/>
                 <MenuItem Header="Save file..." Click="SaveFile_Click" Foreground="Black"/>
             </MenuItem>
-            <MenuItem Header="Function Filters">
-                <MenuItem Header="Invert Colors" Click="InvertColors" Foreground="Black"/>
-                <MenuItem Header="Brightness Correction" Click="BrightnessCorrection" Foreground="Black"/>
-                <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement" Foreground="Black"/>
-                <MenuItem Header="Gamma Correction" Click="GammaCorrection" Foreground="Black"/>
+            <MenuItem Header="Filters" Foreground="White">
+                <MenuItem Header="Function Filters" Foreground="Black">
+                    <MenuItem Header="Invert Colors" Click="InvertColors"/>
+                    <MenuItem Header="Brightness Correction" Click="BrightnessCorrection"/>
+                    <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement"/>
+                    <MenuItem Header="Gamma Correction" Click="GammaCorrection"/>
+                </MenuItem>
+                <MenuItem Header="Convolution Filters" ItemsSource="{Binding ConvolutionFilters}" Foreground="Black">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Header" Value="{Binding Name}"/>
+                            <EventSetter Event="Click" Handler="CustomFilterApply_Click"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <MenuItem Header="Morphological Filters" Foreground="Black">
+                    <MenuItem Header="Erosion" Click="ApplyErosion_Click"/>
+                    <MenuItem Header="Dilation" Click="ApplyDilation_Click"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Edit Convolution Filter..." Click="CustomFilter_Click" Foreground="Black"/>
+                <MenuItem Header="Reset Convolution Filters" Click="ResetCustomFilters_Click" Foreground="Black"/>
             </MenuItem>
-            <MenuItem Header="Convolution Filters">
-                <MenuItem Header="Blur" Click="BlurFilter_Click" Foreground="Black"/>
-                <MenuItem Header="Gaussian Blur" Click="GaussianBlurFilter_Click" Foreground="Black"/>
-                <MenuItem Header="Sharpen" Click="SharpenFilter_Click" Foreground="Black"/>
-                <MenuItem Header="Edge Detection" Click="EdgeDetectionFilter_Click" Foreground="Black"/>
-                <MenuItem Header="Emboss" Click="EmbossFilter_Click" Foreground="Black"/>
-            </MenuItem>
-            <MenuItem x:Name="CustomFiltersMenuItem" Header="Custom Filters" ItemsSource="{Binding ConvolutionFilters}">
-                <MenuItem.ItemContainerStyle>
-                    <Style TargetType="MenuItem">
-                        <Setter Property="Header" Value="{Binding Name}"/>
-                        <EventSetter Event="Click" Handler="CustomFilterApply_Click"/>
-                        <Setter Property="Foreground" Value="Black"/>
-                    </Style>
-                </MenuItem.ItemContainerStyle>
-            </MenuItem>
-            <MenuItem Header="Add Custom Filter" Click="CustomFilter_Click"/>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
-            <MenuItem Header="Reset Custom Filters" Click="ResetCustomFilters_Click"/>
-            <MenuItem Header="Special">
-                <MenuItem Header="Erosion" Click="ApplyErosion_Click" Foreground="Black"/>
-                <MenuItem Header="Dilation" Click="ApplyDilation_Click" Foreground="Black"/>
-            </MenuItem>
         </Menu>
         <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>
         <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>

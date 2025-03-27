@@ -1,14 +1,9 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using Point = System.Windows.Point;
 
 namespace lab1
 {
@@ -252,32 +247,6 @@ namespace lab1
             else
                 MessageBox.Show("Something went wrong with applying the filter.", "Error");
         }
-
-        private void BlurFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyConvolutionFilter(ConvolutionFilter.Blur());
-        }
-
-        private void GaussianBlurFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyConvolutionFilter(ConvolutionFilter.GaussianBlur());
-        }
-
-        private void SharpenFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyConvolutionFilter(ConvolutionFilter.Sharpen());
-        }
-
-        private void EdgeDetectionFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyConvolutionFilter(ConvolutionFilter.EdgeDetection());
-        }
-
-        private void EmbossFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyConvolutionFilter(ConvolutionFilter.Emboss());
-        }
-
         private static int Clamp(int value)
         {
             return Math.Max(0, Math.Min(255, value));
