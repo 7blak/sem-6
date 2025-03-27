@@ -1,8 +1,5 @@
 package org;
 
-import static org.JADEEngine.runGUI;
-import static org.JADEEngine.runAgent;
-
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
@@ -13,6 +10,9 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static org.JADEEngine.runAgent;
+import static org.JADEEngine.runGUI;
 
 public class Engine {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
@@ -73,12 +73,35 @@ public class Engine {
                     marketAgentNumber = 1000;
                     runABSOLUTEMAXIMUMULTIMATENIKCZEMNOSCSZEFA(container);
                 }
+                case "6" -> {
+                    clientAgentNumber = 3;
+                    deliveryAgentNumber = 1;
+                    marketAgentNumber = 3;
+                    runTest(container);
+                }
                 default -> throw new RuntimeException("Invalid task number: " + input);
             }
 
         } catch (final InterruptedException | ExecutionException e) {
             throw new JadePlatformInitializationException(e);
         }
+    }
+
+    private static void runTest(final ContainerController container) throws InterruptedException, ExecutionException {
+        runAgent(container, "DeliveryBolt", "DeliveryAgent",
+                new Object[]{5.00});
+        runAgent(container, "Client1", "ClientAgent",
+                new Object[]{List.of("milk", "coffee", "rice")});
+        runAgent(container, "Client2", "ClientAgent",
+                new Object[]{List.of("milk", "rice")});
+        runAgent(container, "Client3", "ClientAgent",
+                new Object[]{List.of("coffee")});
+        runAgent(container, "MarketBiedronka", "MarketAgent",
+                new Object[]{Map.of("milk", 5.00, "rice", 3.40)});
+        runAgent(container, "MarketOsiedlowy", "MarketAgent",
+                new Object[]{Map.of("rice", 1.00)});
+        runAgent(container, "MarketŻabka", "MarketAgent",
+                new Object[]{Map.of("coffee", 7.50, "milk", 6.39)});
     }
 
     private static void runGroceryTask(final ContainerController container) throws InterruptedException {

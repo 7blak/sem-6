@@ -41,7 +41,7 @@ public class SearchDeliveryBehaviour extends OneShotBehaviour {
             throw new RuntimeException(e);
         } finally {
             _clientAgent.addBehaviour(new SendOrderBehaviour(_clientAgent));
-            _clientAgent.addBehaviour(new SelectOfferBehaviour(_clientAgent, 30000));
+            _clientAgent.addBehaviour(new MessageReceiverBehaviour(_clientAgent));
         }
     }
 }

@@ -41,7 +41,8 @@ public class SearchMarketBehaviour extends OneShotBehaviour {
         } catch (final Exception e) {
             throw new InvalidServiceSpecification(e);
         } finally {
-            _deliveryAgent.addBehaviour(new ReceiveOrderBehaviour(_deliveryAgent));
+            DeliveryAgent._latch.countDown();
+            _deliveryAgent.addBehaviour(new ReceivingOrdersBehaviour(_deliveryAgent));
         }
     }
 }

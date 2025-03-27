@@ -5,6 +5,8 @@ import jade.lang.acl.ACLMessage;
 import org.Util;
 import org.agents.ClientAgent;
 
+import java.util.UUID;
+
 public class SendOrderBehaviour extends OneShotBehaviour {
     private final ClientAgent _clientAgent;
 
@@ -26,7 +28,9 @@ public class SendOrderBehaviour extends OneShotBehaviour {
             ACLMessage orderMsg = new ACLMessage(ACLMessage.REQUEST);
             orderMsg.setContent(orderContent);
             orderMsg.addReceiver(delivery);
-            orderMsg.setConversationId(String.format("convo-order-%s", _clientAgent.getLocalName()));
+            String token = UUID.randomUUID().toString();
+            orderMsg.setConversationId(String.format("order:%s-%s:%s", _clientAgent.getLocalName(), delivery.getLocalName(), token));
+            _clientAgent.get_orderConvoIds().put(delivery, String.format("order:%s-%s:%s", _clientAgent.getLocalName(), delivery.getLocalName(), token));
 
             Util.log(_clientAgent, "Order sent to [" + delivery.getLocalName() + "]");
             _clientAgent.send(orderMsg);

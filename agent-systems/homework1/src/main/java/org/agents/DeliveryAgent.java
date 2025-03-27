@@ -22,10 +22,6 @@ public class DeliveryAgent extends Agent {
     private Double _deliveryFee;
     @Setter
     private List<AID> _markets;
-    @Setter
-    private List<String> _order;
-    @Setter
-    private AID _client;
     public static CountDownLatch _latch = new CountDownLatch(Engine.deliveryAgentNumber);
 
     @Override
@@ -33,7 +29,6 @@ public class DeliveryAgent extends Agent {
         final Object[] args = getArguments();
         _deliveryFee = (Double) args[0];
         _markets = new ArrayList<>();
-        _order = new ArrayList<>();
 
         Util.log(this, "Ready to deliver! My delivery fee is: " + _deliveryFee);
         registerDeliveryService();
@@ -61,8 +56,6 @@ public class DeliveryAgent extends Agent {
 
         } catch (final FIPAException e) {
             throw new InvalidServiceSpecification(e);
-        } finally {
-            _latch.countDown();
         }
     }
 }
