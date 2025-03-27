@@ -1,7 +1,7 @@
 package org.behaviours.client;
 
 import jade.core.AID;
-import jade.core.behaviours.WakerBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
@@ -11,16 +11,16 @@ import org.agents.ClientAgent;
 import java.util.Arrays;
 import java.util.List;
 
-public class SearchDeliveryBehaviour extends WakerBehaviour {
+public class SearchDeliveryBehaviour extends OneShotBehaviour {
     private final ClientAgent _clientAgent;
 
-    public SearchDeliveryBehaviour(final ClientAgent clientAgent, long timeout) {
-        super(clientAgent, timeout);
+    public SearchDeliveryBehaviour(final ClientAgent clientAgent) {
+        super(clientAgent);
         this._clientAgent = clientAgent;
     }
 
     @Override
-    protected void onWake() {
+    public void action() {
         Util.log(_clientAgent, "Searching for avaiable delivery services...");
 
         final ServiceDescription sd = new ServiceDescription();
@@ -41,7 +41,7 @@ public class SearchDeliveryBehaviour extends WakerBehaviour {
             throw new RuntimeException(e);
         } finally {
             _clientAgent.addBehaviour(new SendOrderBehaviour(_clientAgent));
-            _clientAgent.addBehaviour(new SelectOfferBehaviour(_clientAgent, 8000));
+            _clientAgent.addBehaviour(new MessageReceiverBehaviour(_clientAgent));
         }
     }
 }

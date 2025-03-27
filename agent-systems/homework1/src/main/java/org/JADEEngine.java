@@ -53,9 +53,9 @@ public class JADEEngine {
     }
 
     public static void runAgent(final ContainerController mainContainer, final String agentName,
-                                final String className, final String packageName, final Object[] args) {
+                                final String className, final Object[] args) {
         try {
-            final String path = format("org.%s.%s", packageName, className);
+            final String path = format("org.agents.%s", className);
             final AgentController agent = mainContainer.createNewAgent(agentName, path, args);
             agent.start();
         } catch (final StaleProxyException e) {

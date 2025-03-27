@@ -1,7 +1,7 @@
 package org.behaviours.delivery;
 
 import jade.core.AID;
-import jade.core.behaviours.WakerBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
@@ -12,16 +12,16 @@ import org.exceptions.InvalidServiceSpecification;
 import java.util.Arrays;
 import java.util.List;
 
-public class SearchMarketBehaviour extends WakerBehaviour {
+public class SearchMarketBehaviour extends OneShotBehaviour {
     private final DeliveryAgent _deliveryAgent;
 
-    public SearchMarketBehaviour(final DeliveryAgent deliveryAgent, long timeout) {
-        super(deliveryAgent, timeout);
+    public SearchMarketBehaviour(final DeliveryAgent deliveryAgent) {
+        super(deliveryAgent);
         this._deliveryAgent = deliveryAgent;
     }
 
     @Override
-    protected void onWake() {
+    public void action() {
         Util.log(_deliveryAgent, "I'm searching for available markets...");
 
         final ServiceDescription sd = new ServiceDescription();
@@ -41,7 +41,8 @@ public class SearchMarketBehaviour extends WakerBehaviour {
         } catch (final Exception e) {
             throw new InvalidServiceSpecification(e);
         } finally {
-            _deliveryAgent.addBehaviour(new ReceiveOrderBehaviour(_deliveryAgent));
+            DeliveryAgent._latch.countDown();
+            _deliveryAgent.addBehaviour(new ReceivingOrdersBehaviour(_deliveryAgent));
         }
     }
 }

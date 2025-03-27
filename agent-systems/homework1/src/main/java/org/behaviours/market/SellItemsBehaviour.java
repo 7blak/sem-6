@@ -18,24 +18,36 @@ public class SellItemsBehaviour extends CyclicBehaviour {
 
     @Override
     public void action() {
-        ACLMessage msg = _marketAgent.receive();
-        if (msg != null && "convo-stock-query".equals(msg.getConversationId())) {
-            ACLMessage reply = msg.createReply();
-            reply.setPerformative(ACLMessage.INFORM);
-            StringBuilder stockContent = new StringBuilder();
+        ACLMessage msg = myAgent.receive();
+        if (msg != null) {
+            String convoId = msg.getConversationId();
+            if (convoId != null && convoId.startsWith("stock-query:")) {
+                ACLMessage reply = msg.createReply();
+                reply.setPerformative(ACLMessage.INFORM);
+                StringBuilder stockContent = new StringBuilder();
 
-            for (Map.Entry<String, Double> entry : _marketAgent.get_stock().entrySet()) {
-                if (!stockContent.isEmpty()) {
-                    stockContent.append(",");
+                for (Map.Entry<String, Double> entry : _marketAgent.get_stock().entrySet()) {
+                    if (!stockContent.isEmpty()) {
+                        stockContent.append(",");
+                    }
+
+                    stockContent.append(entry.getKey()).append(":").append(String.format(Locale.US, "%.2f", entry.getValue()));
                 }
 
-                stockContent.append(entry.getKey()).append(":").append(String.format(Locale.US, "%.2f", entry.getValue()));
-            }
+                reply.setContent(stockContent.toString());
+                Util.log(_marketAgent, "-> [" + msg.getSender().getLocalName() + "] Replied with stock: " + stockContent);
+                _marketAgent.send(reply);
 
-            reply.setContent(stockContent.toString());
-            reply.setConversationId("convo-stock-query");
-            Util.log(_marketAgent, "->\t[" + msg.getSender().getLocalName() + "] Replied with stock: " + stockContent);
-            _marketAgent.send(reply);
+            } else if (convoId != null && convoId.startsWith("market-buy:")) {
+                Util.log(_marketAgent, "Received message: " + msg.getContent());
+                ACLMessage reply = msg.createReply();
+                reply.setPerformative(ACLMessage.INFORM);
+                reply.setContent("Thank you for shopping at " + _marketAgent.getLocalName());
+                _marketAgent.send(reply);
+
+            } else {
+                block();
+            }
         } else {
             block();
         }
