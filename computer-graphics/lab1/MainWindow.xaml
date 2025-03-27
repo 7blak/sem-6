@@ -45,7 +45,11 @@
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
         </Menu>
-        <Image x:Name="OriginalImage" Grid.Column="0" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>
-        <Image x:Name="FilteredImage" Grid.Column="1" HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Top" Stretch="Fill"/>
+        <ScrollViewer Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <Image x:Name="OriginalImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
+            </ScrollViewer>
+        <ScrollViewer Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image x:Name="FilteredImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
+        </ScrollViewer>
     </Grid>
 </Window>
