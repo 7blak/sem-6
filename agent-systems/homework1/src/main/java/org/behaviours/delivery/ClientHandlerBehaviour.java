@@ -40,7 +40,6 @@ public class ClientHandlerBehaviour extends CyclicBehaviour {
 
     @Override
     public void action() {
-        //System.out.println(_deliveryAgent.getLocalName() + "for<" + _clientAID.getLocalName() + "> " + _marketSellResponses + " " + _marketQueryResponses);
         if (_marketSellResponses >= _selectedMarkets.size() && !_isFinalizing && _hasCalculatedCost) {
             _isFinalizing = true;
             ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
