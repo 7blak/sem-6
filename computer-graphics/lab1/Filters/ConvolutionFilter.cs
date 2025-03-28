@@ -39,23 +39,16 @@ namespace lab1.Filters
 
         public static ConvolutionFilter EnumToFilterConverter(EnumConvolutionFilterType filterType)
         {
-            switch (filterType)
+            return filterType switch
             {
-                case EnumConvolutionFilterType.Default:
-                    return Default();
-                case EnumConvolutionFilterType.Blur:
-                    return Blur();
-                case EnumConvolutionFilterType.GaussianBlur:
-                    return GaussianBlur();
-                case EnumConvolutionFilterType.Sharpen:
-                    return Sharpen();
-                case EnumConvolutionFilterType.EdgeDetection:
-                    return EdgeDetection();
-                case EnumConvolutionFilterType.Emboss:
-                    return Emboss();
-                default:
-                    return Default();
-            }
+                EnumConvolutionFilterType.Default => Default(),
+                EnumConvolutionFilterType.Blur => Blur(),
+                EnumConvolutionFilterType.GaussianBlur => GaussianBlur(),
+                EnumConvolutionFilterType.Sharpen => Sharpen(),
+                EnumConvolutionFilterType.EdgeDetection => EdgeDetection(),
+                EnumConvolutionFilterType.Emboss => Emboss(),
+                _ => Default(),
+            };
         }
 
         public static ConvolutionFilter Default()

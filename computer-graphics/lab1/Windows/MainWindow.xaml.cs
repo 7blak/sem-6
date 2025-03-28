@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
@@ -27,7 +28,7 @@ namespace lab1.Windows
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public ObservableCollection<ConvolutionFilter> ConvolutionFilters { get; set; }
-        
+
         public MainWindow()
         {
             InitializeComponent();
@@ -217,121 +218,80 @@ namespace lab1.Windows
         {
             if (filteredImage == null)
                 return;
+
             averageDitheringLevel = averageDitheringLevel < 2 ? 2 : averageDitheringLevel;
             averageDitheringLevel = averageDitheringLevel > 255 ? 255 : averageDitheringLevel;
+
             int bins = AverageDitheringLevel - 1;
             double binWidth = 255.0 / bins;
             int stride = filteredImage.BackBufferStride;
             int height = filteredImage.PixelHeight;
             int width = filteredImage.PixelWidth;
             int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            double[] sumR = new double[bins];
+            double[] sumG = new double[bins];
+            double[] sumB = new double[bins];
+            int[] countR = new int[bins];
+            int[] countG = new int[bins];
+            int[] countB = new int[bins];
+
             filteredImage.Lock();
-            if (AverageDitheringLevel == 2)
+            unsafe
             {
-                double totalR = 0, totalG = 0, totalB = 0;
+                byte* buffer = (byte*)filteredImage.BackBuffer;
 
-                unsafe
+                for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
                 {
-                    byte* buffer = (byte*)filteredImage.BackBuffer;
+                    byte b = buffer[i];
+                    byte g = buffer[i + 1];
+                    byte r = buffer[i + 2];
 
-                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
-                    {
-                        totalB += buffer[i];
-                        totalG += buffer[i + 1];
-                        totalR += buffer[i + 2];
-                    }
-                }
+                    int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
+                    int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
+                    int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
 
-                double avgR = totalR / (height * width);
-                double avgG = totalG / (height * width);
-                double avgB = totalB / (height * width);
+                    sumR[binIndexR] += r;
+                    sumG[binIndexG] += g;
+                    sumB[binIndexB] += b;
 
-                unsafe
-                {
-                    byte* buffer = (byte*)filteredImage.BackBuffer;
-
-                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
-                    {
-                        byte b = buffer[i];
-                        byte g = buffer[i + 1];
-                        byte r = buffer[i + 2];
-
-                        byte newB = (byte)(b >= avgB ? 255 : 0);
-                        byte newG = (byte)(g >= avgG ? 255 : 0);
-                        byte newR = (byte)(r >= avgR ? 255 : 0);
-
-                        buffer[i] = newB;
-                        buffer[i + 1] = newG;
-                        buffer[i + 2] = newR;
-                    }
+                    countR[binIndexR]++;
+                    countG[binIndexG]++;
+                    countB[binIndexB]++;
                 }
             }
-            else
+
+            byte[] avgR = new byte[bins];
+            byte[] avgG = new byte[bins];
+            byte[] avgB = new byte[bins];
+
+            for (int i = 0; i < bins; i++)
             {
-                double[] sumR = new double[bins];
-                double[] sumG = new double[bins];
-                double[] sumB = new double[bins];
-                int[] countR = new int[bins];
-                int[] countG = new int[bins];
-                int[] countB = new int[bins];
+                double lowerBound = i * binWidth;
+                double upperBound = (i + 1) * binWidth;
+                double midPoint = (lowerBound + upperBound) / 2.0;
 
-                unsafe
+                avgR[i] = (byte)((countR[i] > 0) ? (sumR[i] / countR[i]) : midPoint);
+                avgG[i] = (byte)((countG[i] > 0) ? (sumG[i] / countG[i]) : midPoint);
+                avgB[i] = (byte)((countB[i] > 0) ? (sumB[i] / countB[i]) : midPoint);
+            }
+
+            unsafe
+            {
+                byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
                 {
-                    byte* buffer = (byte*)filteredImage.BackBuffer;
+                    byte b = buffer[i];
+                    byte g = buffer[i + 1];
+                    byte r = buffer[i + 2];
 
-                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
-                    {
-                        byte b = buffer[i];
-                        byte g = buffer[i + 1];
-                        byte r = buffer[i + 2];
+                    int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
+                    int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
+                    int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
 
-                        int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
-                        int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
-                        int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
-
-                        sumR[binIndexR] += r;
-                        sumG[binIndexG] += g;
-                        sumB[binIndexB] += b;
-
-                        countR[binIndexR]++;
-                        countG[binIndexG]++;
-                        countB[binIndexB]++;
-                    }
-                }
-
-                byte[] avgR = new byte[bins];
-                byte[] avgG = new byte[bins];
-                byte[] avgB = new byte[bins];
-
-                for (int i = 0; i < bins; i++)
-                {
-                    double lowerBound = i * binWidth;
-                    double upperBound = (i + 1) * binWidth;
-                    double midPoint = (lowerBound + upperBound) / 2.0;
-
-                    avgR[i] = (byte)((countR[i] > 0) ? (sumR[i] / countR[i]) : midPoint);
-                    avgG[i] = (byte)((countG[i] > 0) ? (sumG[i] / countG[i]) : midPoint);
-                    avgB[i] = (byte)((countB[i] > 0) ? (sumB[i] / countB[i]) : midPoint);
-                }
-
-                unsafe
-                {
-                    byte* buffer = (byte*)filteredImage.BackBuffer;
-
-                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
-                    {
-                        byte b = buffer[i];
-                        byte g = buffer[i + 1];
-                        byte r = buffer[i + 2];
-
-                        int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
-                        int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
-                        int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
-
-                        buffer[i] = avgB[binIndexB];
-                        buffer[i + 1] = avgG[binIndexG];
-                        buffer[i + 2] = avgR[binIndexR];
-                    }
+                    buffer[i] = (byte)(b <= avgB[binIndexB] ? binIndexB * binWidth : (binIndexB + 1) * binWidth);
+                    buffer[i + 1] = (byte)(g <= avgG[binIndexG] ? binIndexG * binWidth : (binIndexG + 1) * binWidth);
+                    buffer[i + 2] = (byte)(r <= avgR[binIndexR] ? binIndexR * binWidth : (binIndexR + 1) * binWidth);
                 }
             }
 
@@ -455,5 +415,30 @@ namespace lab1.Windows
         {
             ApplyAverageDithering();
         }
+
+        private void TextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            e.Handled = !NumericInputRegex().IsMatch(e.Text);
+        }
+
+        private void TextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (int.TryParse(textBox.Text, out int value))
+                {
+                    if (value < 2) value = 2;
+                    if (value > 255) value = 255;
+                }
+                else
+                {
+                    value = 2;
+                }
+                textBox.Text = value.ToString();
+            }
+        }
+
+        [GeneratedRegex("^[0-9]+$")]
+        private static partial Regex NumericInputRegex();
     }
 }

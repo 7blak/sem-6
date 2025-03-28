@@ -46,8 +46,20 @@
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
             <MenuItem Header="Dithering">
-                <TextBox Width="100" Text="{Binding AverageDitheringLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <MenuItem Header="Average Dithering" Click="ApplyAverageDithering_Click" Foreground="Black"/>
+                <MenuItem StaysOpenOnClick="True" Focusable="False" HorizontalAlignment="Left" Padding="0">
+                    <MenuItem.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Dithering Level [2-255]:" Foreground="Black" HorizontalAlignment="Left" Padding="0"/>
+                            <TextBox Grid.Column="1" Width="40" MaxLength="3" Text="{Binding AverageDitheringLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="5,0,0,0" Padding="0"
+                                     TextAlignment="Left" PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus"/>
+                        </Grid>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Header="Apply Average Dithering" Click="ApplyAverageDithering_Click" Foreground="Black"/>
             </MenuItem>
         </Menu>
         <ScrollViewer Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
