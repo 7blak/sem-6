@@ -1,4 +1,5 @@
-﻿using System;
+﻿using lab1.Filters;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -13,7 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace lab1
+namespace lab1.Windows
 {
     public partial class CustomFilterWindow : Window
     {

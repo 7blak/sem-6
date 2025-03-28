@@ -1,16 +1,31 @@
-﻿using Microsoft.Win32;
+﻿using lab1.Filters;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
-namespace lab1
+namespace lab1.Windows
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
+        private int averageDitheringLevel = 2;
+        public int AverageDitheringLevel
+        {
+            get => averageDitheringLevel;
+            set
+            {
+                averageDitheringLevel = value;
+                OnPropertyChanged(nameof(AverageDitheringLevel));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
         public ObservableCollection<ConvolutionFilter> ConvolutionFilters { get; set; }
         
         public MainWindow()
@@ -19,6 +34,11 @@ namespace lab1
             ConvolutionFilters = [];
             SetFiltersToDefault();
             DataContext = this;
+        }
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         private void SetFiltersToDefault()
@@ -160,6 +180,165 @@ namespace lab1
             filteredImage.Unlock();
             FilteredImage.Source = filteredImage;
         }
+
+        private void ApplyGrayscale()
+        {
+            if (filteredImage == null)
+                return;
+            int stride = filteredImage.BackBufferStride;
+            int height = filteredImage.PixelHeight;
+            int width = filteredImage.PixelWidth;
+            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            filteredImage.Lock();
+            unsafe
+            {
+                byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                for (int i = 0; i < width * height * bytesPerPixel; i += bytesPerPixel)
+                {
+                    byte b = buffer[i];
+                    byte g = buffer[i + 1];
+                    byte r = buffer[i + 2];
+
+                    byte gray = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
+
+                    buffer[i] = gray;
+                    buffer[i + 1] = gray;
+                    buffer[i + 2] = gray;
+                }
+            }
+
+            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            filteredImage.Unlock();
+            FilteredImage.Source = filteredImage;
+        }
+
+        private void ApplyAverageDithering()
+        {
+            if (filteredImage == null)
+                return;
+            averageDitheringLevel = averageDitheringLevel < 2 ? 2 : averageDitheringLevel;
+            averageDitheringLevel = averageDitheringLevel > 255 ? 255 : averageDitheringLevel;
+            int bins = AverageDitheringLevel - 1;
+            double binWidth = 255.0 / bins;
+            int stride = filteredImage.BackBufferStride;
+            int height = filteredImage.PixelHeight;
+            int width = filteredImage.PixelWidth;
+            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            filteredImage.Lock();
+            if (AverageDitheringLevel == 2)
+            {
+                double totalR = 0, totalG = 0, totalB = 0;
+
+                unsafe
+                {
+                    byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
+                    {
+                        totalB += buffer[i];
+                        totalG += buffer[i + 1];
+                        totalR += buffer[i + 2];
+                    }
+                }
+
+                double avgR = totalR / (height * width);
+                double avgG = totalG / (height * width);
+                double avgB = totalB / (height * width);
+
+                unsafe
+                {
+                    byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
+                    {
+                        byte b = buffer[i];
+                        byte g = buffer[i + 1];
+                        byte r = buffer[i + 2];
+
+                        byte newB = (byte)(b >= avgB ? 255 : 0);
+                        byte newG = (byte)(g >= avgG ? 255 : 0);
+                        byte newR = (byte)(r >= avgR ? 255 : 0);
+
+                        buffer[i] = newB;
+                        buffer[i + 1] = newG;
+                        buffer[i + 2] = newR;
+                    }
+                }
+            }
+            else
+            {
+                double[] sumR = new double[bins];
+                double[] sumG = new double[bins];
+                double[] sumB = new double[bins];
+                int[] countR = new int[bins];
+                int[] countG = new int[bins];
+                int[] countB = new int[bins];
+
+                unsafe
+                {
+                    byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
+                    {
+                        byte b = buffer[i];
+                        byte g = buffer[i + 1];
+                        byte r = buffer[i + 2];
+
+                        int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
+                        int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
+                        int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
+
+                        sumR[binIndexR] += r;
+                        sumG[binIndexG] += g;
+                        sumB[binIndexB] += b;
+
+                        countR[binIndexR]++;
+                        countG[binIndexG]++;
+                        countB[binIndexB]++;
+                    }
+                }
+
+                byte[] avgR = new byte[bins];
+                byte[] avgG = new byte[bins];
+                byte[] avgB = new byte[bins];
+
+                for (int i = 0; i < bins; i++)
+                {
+                    double lowerBound = i * binWidth;
+                    double upperBound = (i + 1) * binWidth;
+                    double midPoint = (lowerBound + upperBound) / 2.0;
+
+                    avgR[i] = (byte)((countR[i] > 0) ? (sumR[i] / countR[i]) : midPoint);
+                    avgG[i] = (byte)((countG[i] > 0) ? (sumG[i] / countG[i]) : midPoint);
+                    avgB[i] = (byte)((countB[i] > 0) ? (sumB[i] / countB[i]) : midPoint);
+                }
+
+                unsafe
+                {
+                    byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                    for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
+                    {
+                        byte b = buffer[i];
+                        byte g = buffer[i + 1];
+                        byte r = buffer[i + 2];
+
+                        int binIndexR = Math.Min((int)(r / binWidth), bins - 1);
+                        int binIndexG = Math.Min((int)(g / binWidth), bins - 1);
+                        int binIndexB = Math.Min((int)(b / binWidth), bins - 1);
+
+                        buffer[i] = avgB[binIndexB];
+                        buffer[i + 1] = avgG[binIndexG];
+                        buffer[i + 2] = avgR[binIndexR];
+                    }
+                }
+            }
+
+            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            filteredImage.Unlock();
+            FilteredImage.Source = filteredImage;
+        }
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new() { Filter = "Image Files|*.jpg;*.png;*.bmp" };
@@ -265,6 +444,16 @@ namespace lab1
         private void ApplyDilation_Click(object sender, RoutedEventArgs e)
         {
             ApplyMorphology(false);
+        }
+
+        private void ApplyGrayscale_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyGrayscale();
+        }
+
+        private void ApplyAverageDithering_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyAverageDithering();
         }
     }
 }

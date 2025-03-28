@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Windows;
 
-namespace lab1
+namespace lab1.Filters
 {
     public enum EnumConvolutionFilterType { Default, Blur, GaussianBlur, Sharpen, EdgeDetection, Emboss };
 
@@ -12,11 +12,11 @@ namespace lab1
         public double[,] Kernel { get; set; }
         public double[,] DividedKernel { get; set; }
         private double _divisor;
-        public double Divisor { get { return _divisor; } set { _divisor = (value == 0) ? 1 : value; CalculateDividedKernel(); } }
+        public double Divisor { get { return _divisor; } set { _divisor = value == 0 ? 1 : value; CalculateDividedKernel(); } }
         public Point Anchor { get; set; }
         public double Offset { get; set; }
 
-        public ConvolutionFilter(string name, double[,] kernel, double divisor, System.Windows.Point anchor, double offset = 0)
+        public ConvolutionFilter(string name, double[,] kernel, double divisor, Point anchor, double offset = 0)
         {
             Name = name;
             Kernel = new double[kernel.GetLength(0), kernel.GetLength(1)];
