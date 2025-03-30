@@ -1,0 +1,103 @@
+﻿<Window x:Class="lab1.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:lab1"
+        mc:Ignorable="d"
+        Title="Computer Graphics Project" Height="900" Width="1600" WindowStyle="ThreeDBorderWindow" MinHeight="300" MinWidth="300">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Menu Grid.ColumnSpan="2" FontSize="14" Background="Black" Foreground="White">
+            <MenuItem Header="File">
+                <MenuItem Header="Open file..." Click="OpenFile_Click" Foreground="Black"/>
+                <MenuItem Header="Save file..." Click="SaveFile_Click" Foreground="Black"/>
+            </MenuItem>
+            <MenuItem Header="Filters" Foreground="White">
+                <MenuItem Header="Function Filters" Foreground="Black">
+                    <MenuItem Header="Invert Colors" Click="InvertColors"/>
+                    <MenuItem Header="Brightness Correction" Click="BrightnessCorrection"/>
+                    <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement"/>
+                    <MenuItem Header="Gamma Correction" Click="GammaCorrection"/>
+                </MenuItem>
+                <MenuItem Header="Convolution Filters" ItemsSource="{Binding ConvolutionFilters}" Foreground="Black">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Header" Value="{Binding Name}"/>
+                            <EventSetter Event="Click" Handler="CustomFilterApply_Click"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <MenuItem Header="Morphological Filters" Foreground="Black">
+                    <MenuItem Header="Erosion" Click="ApplyErosion_Click"/>
+                    <MenuItem Header="Dilation" Click="ApplyDilation_Click"/>
+                </MenuItem>
+                <MenuItem Header="Grayscale Filter" Foreground="Black" Click="ApplyGrayscale_Click"/>
+                <Separator/>
+                <MenuItem Header="Edit Convolution Filter..." Click="CustomFilter_Click" Foreground="Black"/>
+                <MenuItem Header="Reset Convolution Filters" Click="ResetCustomFilters_Click" Foreground="Black"/>
+            </MenuItem>
+            <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
+            <MenuItem Header="Dithering">
+                <MenuItem StaysOpenOnClick="True" Focusable="False" HorizontalAlignment="Left" Padding="0">
+                    <MenuItem.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Dithering Level [2-255]:" Foreground="Black" HorizontalAlignment="Left" Padding="0"/>
+                            <TextBox Grid.Column="1" Width="40" MaxLength="3" Text="{Binding AverageDitheringLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="5,0,0,0" Padding="0"
+                                     TextAlignment="Left" PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus" Tag="2,255"/>
+                        </Grid>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Header="Apply Average Dithering" Click="ApplyAverageDithering_Click" Foreground="Black"/>
+            </MenuItem>
+            <MenuItem Header="Color Quantization">
+                <MenuItem StaysOpenOnClick="True" Focusable="False" HorizontalAlignment="Left" Padding="0">
+                    <MenuItem.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="K-Means Colors [2-999]:" Foreground="Black" HorizontalAlignment="Left" Padding="0"/>
+                            <TextBox Grid.Column="1" Width="40" MaxLength="3" Text="{Binding KMeans, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="5,0,0,0" Padding="0"
+                                     TextAlignment="Left" PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus" Tag="2,999"/>
+                        </Grid>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Header="Apply K-Means Quantization" Click="ApplyKMeansQuantization_Click" Foreground="Black"/>
+            </MenuItem>
+            <MenuItem Header="Extras">
+                <MenuItem StaysOpenOnClick="True" Focusable="False" HorizontalAlignment="Left" Padding="0">
+                    <MenuItem.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Random seed:" Foreground="Black" HorizontalAlignment="Left" Padding="0"/>
+                            <TextBox Grid.Column="1" Width="60" Text="{Binding RandomSeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="5,0,0,0" Padding="0"
+                     TextAlignment="Left" PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus" Tag="0,9999"/>
+                        </Grid>
+                    </MenuItem.Header>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+        <ScrollViewer Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <Image x:Name="OriginalImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
+            </ScrollViewer>
+        <ScrollViewer Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image x:Name="FilteredImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
+        </ScrollViewer>
+    </Grid>
+</Window>
