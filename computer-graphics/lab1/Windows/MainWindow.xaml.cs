@@ -60,11 +60,13 @@ namespace lab1.Windows
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public ObservableCollection<ConvolutionFilter> ConvolutionFilters { get; set; }
+        public ObservableCollection<FunctionalFilter> FunctionalFilters { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
             ConvolutionFilters = [];
+            FunctionalFilters = [];
             SetFiltersToDefault();
             DataContext = this;
         }
@@ -79,9 +81,12 @@ namespace lab1.Windows
             ConvolutionFilters.Clear();
             foreach (var type in Enum.GetValues<EnumConvolutionFilterType>())
                 ConvolutionFilters.Add(ConvolutionFilter.EnumToFilterConverter((EnumConvolutionFilterType)type));
+            FunctionalFilters.Clear();
+            foreach (var type in Enum.GetValues<EnumFunctionalFilterType>())
+                FunctionalFilters.Add(FunctionalFilter.EnumToFilterConverter((EnumFunctionalFilterType)type));
         }
 
-        private void ApplyPixelFilter(Func<int, int, int, (int, int, int)> filter)
+        private void ApplyFunctionalFilter(FunctionalFilter filter)
         {
             if (filteredImage == null)
                 return;
@@ -98,7 +103,7 @@ namespace lab1.Windows
                     for (int x = 0; x < width; x++)
                     {
                         int index = y * stride + x * bytesPerPixel;
-                        var (r, g, b) = filter(buffer[index + 2], buffer[index + 1], buffer[index]);
+                        var (r, g, b) = filter.FilterFunction(buffer[index + 2], buffer[index + 1], buffer[index]);
                         buffer[index] = (byte)b;
                         buffer[index + 1] = (byte)g;
                         buffer[index + 2] = (byte)r;
@@ -351,7 +356,7 @@ namespace lab1.Windows
                 assignments[i] = -1;
 
             float[] centroids = new float[kMeans * 3];
-            Random rand = new Random(randomSeed);
+            Random rand = new(randomSeed);
 
             filteredImage.Lock();
             unsafe
@@ -367,7 +372,6 @@ namespace lab1.Windows
                     centroids[cluster * 3 + 2] = p[0];
                 }
             }
-
             double[] sumR = new double[kMeans];
             double[] sumG = new double[kMeans];
             double[] sumB = new double[kMeans];
@@ -498,55 +502,20 @@ namespace lab1.Windows
             customFilterWindow.ShowDialog();
         }
 
-        private void InvertColors(object sender, RoutedEventArgs e)
+        private void FunctionalFilterApply_Click(object sender, RoutedEventArgs e)
         {
-            ApplyPixelFilter((r, g, b) => (
-            255 - r,
-            255 - g,
-            255 - b
-            ));
+            if (sender is MenuItem menuItem && menuItem.DataContext is FunctionalFilter selectedFilter)
+                ApplyFunctionalFilter(selectedFilter);
+            else
+                MessageBox.Show("Something went wrong with applying the filter.", "Error");
         }
 
-        private void BrightnessCorrection(object sender, RoutedEventArgs e)
-        {
-            int adjustment = 60;
-            ApplyPixelFilter((r, g, b) => (
-            Clamp(r + adjustment),
-            Clamp(g + adjustment),
-            Clamp(b + adjustment)
-            ));
-        }
-
-        private void ContrastEnhancement(object sender, RoutedEventArgs e)
-        {
-            double contrast = 1.44;
-            ApplyPixelFilter((r, g, b) => (
-            Clamp((int)(((r / 255.0 - 0.5) * contrast + 0.5) * 255.0)),
-            Clamp((int)(((g / 255.0 - 0.5) * contrast + 0.5) * 255.0)),
-            Clamp((int)(((b / 255.0 - 0.5) * contrast + 0.5) * 255.0))
-            ));
-        }
-
-        private void GammaCorrection(object sender, RoutedEventArgs e)
-        {
-            double gamma = 0.5;
-            ApplyPixelFilter((r, g, b) => (
-            Clamp((int)(Math.Pow(r / 255.0, gamma) * 255.0)),
-            Clamp((int)(Math.Pow(g / 255.0, gamma) * 255.0)),
-            Clamp((int)(Math.Pow(b / 255.0, gamma) * 255.0))
-            ));
-        }
-
-        private void CustomFilterApply_Click(object sender, RoutedEventArgs e)
+        private void ConvolutionFilterApply_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem menuItem && menuItem.DataContext is ConvolutionFilter selectedFilter)
                 ApplyConvolutionFilter(selectedFilter);
             else
                 MessageBox.Show("Something went wrong with applying the filter.", "Error");
-        }
-        private static int Clamp(int value)
-        {
-            return Math.Max(0, Math.Min(255, value));
         }
 
         private void ResetCustomFilters_Click(object sender, RoutedEventArgs e)

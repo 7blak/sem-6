@@ -21,17 +21,19 @@
                 <MenuItem Header="Save file..." Click="SaveFile_Click" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Filters" Foreground="White">
-                <MenuItem Header="Function Filters" Foreground="Black">
-                    <MenuItem Header="Invert Colors" Click="InvertColors"/>
-                    <MenuItem Header="Brightness Correction" Click="BrightnessCorrection"/>
-                    <MenuItem Header="Contrast Enhancement" Click="ContrastEnhancement"/>
-                    <MenuItem Header="Gamma Correction" Click="GammaCorrection"/>
+                <MenuItem Header="Function Filters" ItemsSource="{Binding FunctionalFilters}" Foreground="Black">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Header" Value="{Binding Name}"/>
+                            <EventSetter Event="Click" Handler="FunctionalFilterApply_Click"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
                 </MenuItem>
                 <MenuItem Header="Convolution Filters" ItemsSource="{Binding ConvolutionFilters}" Foreground="Black">
                     <MenuItem.ItemContainerStyle>
                         <Style TargetType="MenuItem">
                             <Setter Property="Header" Value="{Binding Name}"/>
-                            <EventSetter Event="Click" Handler="CustomFilterApply_Click"/>
+                            <EventSetter Event="Click" Handler="ConvolutionFilterApply_Click"/>
                         </Style>
                     </MenuItem.ItemContainerStyle>
                 </MenuItem>
@@ -42,7 +44,7 @@
                 <MenuItem Header="Grayscale Filter" Foreground="Black" Click="ApplyGrayscale_Click"/>
                 <Separator/>
                 <MenuItem Header="Edit Convolution Filter..." Click="CustomFilter_Click" Foreground="Black"/>
-                <MenuItem Header="Reset Convolution Filters" Click="ResetCustomFilters_Click" Foreground="Black"/>
+                <MenuItem Header="Reset Filters" Click="ResetCustomFilters_Click" Foreground="Black"/>
             </MenuItem>
             <MenuItem Header="Reset Image" Click="ResetImage_Click"/>
             <MenuItem Header="Dithering">
