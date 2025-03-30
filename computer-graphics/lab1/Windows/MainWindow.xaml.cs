@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace lab1.Windows
@@ -604,6 +605,20 @@ namespace lab1.Windows
         private void ApplyKMeansQuantization_Click(object sender, RoutedEventArgs e)
         {
             ApplyKMeansColorQuantization();
+        }
+
+        private void ToggleStretch_Click(object sender, RoutedEventArgs e)
+        {
+            bool isStretchNone = OriginalImage.Stretch == Stretch.None;
+
+            OriginalImage.Stretch = isStretchNone ? Stretch.Uniform : Stretch.None;
+            FilteredImage.Stretch = isStretchNone ? Stretch.Uniform : Stretch.None;
+
+            OriginalScrollViewer.HorizontalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+            OriginalScrollViewer.VerticalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+
+            FilteredScrollViewer.HorizontalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+            FilteredScrollViewer.VerticalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
         }
     }
 }

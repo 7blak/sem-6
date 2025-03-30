@@ -91,12 +91,13 @@
                         </Grid>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem Header="Toggle Stretch" Click="ToggleStretch_Click" Foreground="Black"/>
             </MenuItem>
         </Menu>
-        <ScrollViewer Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                <Image x:Name="OriginalImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
-            </ScrollViewer>
-        <ScrollViewer Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="OriginalScrollViewer" Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image x:Name="OriginalImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
+        </ScrollViewer>
+        <ScrollViewer x:Name="FilteredScrollViewer" Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Image x:Name="FilteredImage" HorizontalAlignment="Center" VerticalAlignment="Top" Stretch="None"/>
         </ScrollViewer>
     </Grid>
