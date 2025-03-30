@@ -8,11 +8,11 @@ namespace lab1.Filters
 
     public class ConvolutionFilter
     {
+        private double _divisor;
+        public double Divisor { get { return _divisor; } set { _divisor = value == 0 ? 1 : value; CalculateDividedKernel(); } }
         public string Name { get; set; }
         public double[,] Kernel { get; set; }
         public double[,] DividedKernel { get; set; }
-        private double _divisor;
-        public double Divisor { get { return _divisor; } set { _divisor = value == 0 ? 1 : value; CalculateDividedKernel(); } }
         public Point Anchor { get; set; }
         public double Offset { get; set; }
 

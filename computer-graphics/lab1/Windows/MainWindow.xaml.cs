@@ -2,6 +2,7 @@
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -15,45 +16,45 @@ namespace lab1.Windows
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private BitmapSource? originalImage;
-        private WriteableBitmap? filteredImage;
-        private int randomSeed = 999;
+        private BitmapSource? _originalImage;
+        private WriteableBitmap? _filteredImage;
+        private int _randomSeed = 999;
         public int RandomSeed
         {
-            get => randomSeed;
+            get => _randomSeed;
             set
             {
-                randomSeed = value;
+                _randomSeed = value;
                 OnPropertyChanged(nameof(RandomSeed));
             }
         }
-        private int kMeans = 4;
+        private int _kMeans = 4;
         public int KMeans
         {
-            get => kMeans;
+            get => _kMeans;
             set
             {
-                kMeans = value;
+                _kMeans = value;
                 OnPropertyChanged(nameof(KMeans));
             }
         }
-        private int kMeansMaxIterations = 1000;
+        private int _kMeansMaxIterations = 1000;
         public int KMeansMaxIterations
         {
-            get => kMeansMaxIterations;
+            get => _kMeansMaxIterations;
             set
             {
-                kMeansMaxIterations = value;
+                _kMeansMaxIterations = value;
                 OnPropertyChanged(nameof(KMeansMaxIterations));
             }
         }
-        private int averageDitheringLevel = 2;
+        private int _averageDitheringLevel = 2;
         public int AverageDitheringLevel
         {
-            get => averageDitheringLevel;
+            get => _averageDitheringLevel;
             set
             {
-                averageDitheringLevel = value;
+                _averageDitheringLevel = value;
                 OnPropertyChanged(nameof(AverageDitheringLevel));
             }
         }
@@ -88,16 +89,16 @@ namespace lab1.Windows
 
         private void ApplyFunctionalFilter(FunctionalFilter filter)
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
-            filteredImage.Lock();
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -111,27 +112,27 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
 
         private void ApplyConvolutionFilter(ConvolutionFilter filter)
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
             byte[] pixels = new byte[height * stride];
             int halfKernelHeight = (filter.Kernel.GetLength(0)) / 2;
             int halfKernelWidth = (filter.Kernel.GetLength(1)) / 2;
-            filteredImage.CopyPixels(pixels, stride, 0);
-            filteredImage.Lock();
+            _filteredImage.CopyPixels(pixels, stride, 0);
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -158,25 +159,25 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
 
         private void ApplyMorphology(bool isErosion)
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
             byte[] pixels = new byte[height * stride];
-            filteredImage.CopyPixels(pixels, stride, 0);
-            filteredImage.Lock();
+            _filteredImage.CopyPixels(pixels, stride, 0);
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
 
                 for (int y = 0; y < height; y++)
                 {
@@ -214,23 +215,23 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
 
         private void ApplyGrayscale()
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
-            filteredImage.Lock();
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
 
                 for (int i = 0; i < width * height * bytesPerPixel; i += bytesPerPixel)
                 {
@@ -246,25 +247,25 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
 
         private void ApplyAverageDithering()
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
 
-            averageDitheringLevel = averageDitheringLevel < 2 ? 2 : averageDitheringLevel;
-            averageDitheringLevel = averageDitheringLevel > 255 ? 255 : averageDitheringLevel;
+            _averageDitheringLevel = _averageDitheringLevel < 2 ? 2 : _averageDitheringLevel;
+            _averageDitheringLevel = _averageDitheringLevel > 255 ? 255 : _averageDitheringLevel;
 
             int bins = AverageDitheringLevel - 1;
             double binWidth = 255.0 / bins;
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
             double[] sumR = new double[bins];
             double[] sumG = new double[bins];
             double[] sumB = new double[bins];
@@ -272,10 +273,10 @@ namespace lab1.Windows
             int[] countG = new int[bins];
             int[] countB = new int[bins];
 
-            filteredImage.Lock();
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
 
                 for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
                 {
@@ -314,7 +315,7 @@ namespace lab1.Windows
 
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
 
                 for (int i = 0; i < height * width * bytesPerPixel; i += bytesPerPixel)
                 {
@@ -332,22 +333,22 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
 
         private void ApplyKMeansColorQuantization()
         {
-            if (filteredImage == null)
+            if (_filteredImage == null)
                 return;
 
-            kMeans = kMeans < 2 ? 2 : kMeans;
+            _kMeans = _kMeans < 2 ? 2 : _kMeans;
 
-            int stride = filteredImage.BackBufferStride;
-            int height = filteredImage.PixelHeight;
-            int width = filteredImage.PixelWidth;
-            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            int stride = _filteredImage.BackBufferStride;
+            int height = _filteredImage.PixelHeight;
+            int width = _filteredImage.PixelWidth;
+            int bytesPerPixel = (_filteredImage.Format.BitsPerPixel + 7) / 8;
             int imageLength = width * height * bytesPerPixel;
             int pixelCount = width * height;
 
@@ -355,23 +356,23 @@ namespace lab1.Windows
             for (int i = 0; i < pixelCount; i++)
                 assignments[i] = -1;
 
-            float[] centroids = new float[kMeans * 3];
-            double[] sumR = new double[kMeans];
-            double[] sumG = new double[kMeans];
-            double[] sumB = new double[kMeans];
-            int[] count = new int[kMeans];
+            float[] centroids = new float[_kMeans * 3];
+            double[] sumR = new double[_kMeans];
+            double[] sumG = new double[_kMeans];
+            double[] sumB = new double[_kMeans];
+            int[] count = new int[_kMeans];
 
             bool changed = true;
             int iteration = 0;
 
-            Random rand = new(randomSeed);
+            Random rand = new(_randomSeed);
 
-            filteredImage.Lock();
+            _filteredImage.Lock();
             unsafe
             {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
+                byte* buffer = (byte*)_filteredImage.BackBuffer;
 
-                for (int cluster = 0; cluster < kMeans; cluster++)
+                for (int cluster = 0; cluster < _kMeans; cluster++)
                 {
                     int index = rand.Next(pixelCount);
                     byte* p = buffer + index * bytesPerPixel;
@@ -380,12 +381,12 @@ namespace lab1.Windows
                     centroids[cluster * 3 + 2] = p[0];
                 }
 
-                while (changed && iteration < kMeansMaxIterations)
+                while (changed && iteration < _kMeansMaxIterations)
                 {
                     changed = false;
                     iteration++;
 
-                    for (int i = 0; i < kMeans; i++)
+                    for (int i = 0; i < _kMeans; i++)
                     {
                         sumR[i] = 0;
                         sumG[i] = 0;
@@ -401,7 +402,7 @@ namespace lab1.Windows
                         float r = p[2];
                         int bestCluster = 0;
                         double minDistance = double.MaxValue;
-                        for (int cluster = 0; cluster < kMeans; cluster++)
+                        for (int cluster = 0; cluster < _kMeans; cluster++)
                         {
                             float dr = r - centroids[cluster * 3];
                             float dg = g - centroids[cluster * 3 + 1];
@@ -424,7 +425,7 @@ namespace lab1.Windows
                         count[bestCluster]++;
                     }
 
-                    for (int cluster = 0; cluster < kMeans ; cluster++)
+                    for (int cluster = 0; cluster < _kMeans; cluster++)
                     {
                         if (count[cluster] > 0)
                         {
@@ -453,32 +454,33 @@ namespace lab1.Windows
                 }
             }
 
-            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            filteredImage.Unlock();
-            FilteredImage.Source = filteredImage;
+            _filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            _filteredImage.Unlock();
+            FilteredImage.Source = _filteredImage;
         }
+
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new() { Filter = "Image Files|*.jpg;*.png;*.bmp" };
             if (openFileDialog.ShowDialog() == true)
             {
-                originalImage = new BitmapImage(new Uri(openFileDialog.FileName));
-                filteredImage = new WriteableBitmap(originalImage);
-                OriginalImage.Source = originalImage;
-                FilteredImage.Source = filteredImage;
+                _originalImage = new BitmapImage(new Uri(openFileDialog.FileName));
+                _filteredImage = new WriteableBitmap(_originalImage);
+                OriginalImage.Source = _originalImage;
+                FilteredImage.Source = _filteredImage;
             }
         }
 
         private void SaveFile_Click(object sender, RoutedEventArgs e)
         {
-            if (filteredImage != null)
+            if (_filteredImage != null)
             {
                 SaveFileDialog saveFileDialog = new() { Filter = "PNG Image|*.png" };
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     using FileStream stream = new(saveFileDialog.FileName, FileMode.Create);
                     PngBitmapEncoder encoder = new();
-                    encoder.Frames.Add(BitmapFrame.Create(filteredImage));
+                    encoder.Frames.Add(BitmapFrame.Create(_filteredImage));
                     encoder.Save(stream);
                 }
             }
@@ -486,10 +488,10 @@ namespace lab1.Windows
 
         private void ResetImage_Click(object sender, RoutedEventArgs e)
         {
-            if (originalImage == null)
+            if (_originalImage == null)
                 return;
-            filteredImage = new WriteableBitmap(originalImage);
-            FilteredImage.Source = filteredImage;
+            _filteredImage = new WriteableBitmap(_originalImage);
+            FilteredImage.Source = _filteredImage;
         }
 
         private void CustomFilter_Click(object sender, RoutedEventArgs e)
