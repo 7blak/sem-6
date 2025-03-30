@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -15,6 +16,36 @@ namespace lab1.Windows
     {
         private BitmapSource? originalImage;
         private WriteableBitmap? filteredImage;
+        private int randomSeed = 999;
+        public int RandomSeed
+        {
+            get => randomSeed;
+            set
+            {
+                randomSeed = value;
+                OnPropertyChanged(nameof(RandomSeed));
+            }
+        }
+        private int kMeans = 4;
+        public int KMeans
+        {
+            get => kMeans;
+            set
+            {
+                kMeans = value;
+                OnPropertyChanged(nameof(KMeans));
+            }
+        }
+        private int kMeansMaxIterations = 1000;
+        public int KMeansMaxIterations
+        {
+            get => kMeansMaxIterations;
+            set
+            {
+                kMeansMaxIterations = value;
+                OnPropertyChanged(nameof(KMeansMaxIterations));
+            }
+        }
         private int averageDitheringLevel = 2;
         public int AverageDitheringLevel
         {
@@ -260,9 +291,9 @@ namespace lab1.Windows
                 }
             }
 
-            byte[] avgR = new byte[bins];
-            byte[] avgG = new byte[bins];
-            byte[] avgB = new byte[bins];
+            double[] avgR = new double[bins];
+            double[] avgG = new double[bins];
+            double[] avgB = new double[bins];
 
             for (int i = 0; i < bins; i++)
             {
@@ -270,9 +301,9 @@ namespace lab1.Windows
                 double upperBound = (i + 1) * binWidth;
                 double midPoint = (lowerBound + upperBound) / 2.0;
 
-                avgR[i] = (byte)((countR[i] > 0) ? (sumR[i] / countR[i]) : midPoint);
-                avgG[i] = (byte)((countG[i] > 0) ? (sumG[i] / countG[i]) : midPoint);
-                avgB[i] = (byte)((countB[i] > 0) ? (sumB[i] / countB[i]) : midPoint);
+                avgR[i] = (countR[i] > 0) ? (sumR[i] / countR[i]) : midPoint;
+                avgG[i] = (countG[i] > 0) ? (sumG[i] / countG[i]) : midPoint;
+                avgB[i] = (countB[i] > 0) ? (sumB[i] / countB[i]) : midPoint;
             }
 
             unsafe
@@ -292,6 +323,132 @@ namespace lab1.Windows
                     buffer[i] = (byte)(b <= avgB[binIndexB] ? binIndexB * binWidth : (binIndexB + 1) * binWidth);
                     buffer[i + 1] = (byte)(g <= avgG[binIndexG] ? binIndexG * binWidth : (binIndexG + 1) * binWidth);
                     buffer[i + 2] = (byte)(r <= avgR[binIndexR] ? binIndexR * binWidth : (binIndexR + 1) * binWidth);
+                }
+            }
+
+            filteredImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            filteredImage.Unlock();
+            FilteredImage.Source = filteredImage;
+        }
+
+        private void ApplyKMeansColorQuantization()
+        {
+            if (filteredImage == null)
+                return;
+
+            kMeans = kMeans < 2 ? 2 : kMeans;
+
+            int stride = filteredImage.BackBufferStride;
+            int height = filteredImage.PixelHeight;
+            int width = filteredImage.PixelWidth;
+            int bytesPerPixel = (filteredImage.Format.BitsPerPixel + 7) / 8;
+            int imageLength = width * height * bytesPerPixel;
+            int pixelCount = width * height;
+
+            int[] assignments = new int[pixelCount];
+            for (int i = 0; i < pixelCount; i++)
+                assignments[i] = -1;
+
+            float[] centroids = new float[kMeans * 3];
+            Random rand = new Random(randomSeed);
+
+            filteredImage.Lock();
+            unsafe
+            {
+                byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                for (int cluster = 0; cluster < kMeans; cluster++)
+                {
+                    int index = rand.Next(pixelCount);
+                    byte* p = buffer + index * bytesPerPixel;
+                    centroids[cluster * 3] = p[2];
+                    centroids[cluster * 3 + 1] = p[1];
+                    centroids[cluster * 3 + 2] = p[0];
+                }
+            }
+
+            double[] sumR = new double[kMeans];
+            double[] sumG = new double[kMeans];
+            double[] sumB = new double[kMeans];
+            int[] count = new int[kMeans];
+
+            bool changed = true;
+            int iteration = 0;
+
+            unsafe
+            {
+                byte* buffer = (byte*)filteredImage.BackBuffer;
+
+                while (changed && iteration < kMeansMaxIterations)
+                {
+                    changed = false;
+                    iteration++;
+
+                    for (int i = 0; i < kMeans; i++)
+                    {
+                        sumR[i] = 0;
+                        sumG[i] = 0;
+                        sumB[i] = 0;
+                        count[i] = 0;
+                    }
+
+                    for (int i = 0; i < pixelCount; i++)
+                    {
+                        byte* p = buffer + i * bytesPerPixel;
+                        float b = p[0];
+                        float g = p[1];
+                        float r = p[2];
+                        int bestCluster = 0;
+                        double minDistance = double.MaxValue;
+                        for (int cluster = 0; cluster < kMeans; cluster++)
+                        {
+                            float dr = r - centroids[cluster * 3];
+                            float dg = g - centroids[cluster * 3 + 1];
+                            float db = b - centroids[cluster * 3 + 2];
+                            double dist = dr * dr + dg * dg + db * db;
+                            if (dist < minDistance)
+                            {
+                                minDistance = dist;
+                                bestCluster = cluster;
+                            }
+                        }
+                        if (assignments[i] != bestCluster)
+                        {
+                            changed = true;
+                            assignments[i] = bestCluster;
+                        }
+                        sumR[bestCluster] += r;
+                        sumG[bestCluster] += g;
+                        sumB[bestCluster] += b;
+                        count[bestCluster]++;
+                    }
+
+                    for (int cluster = 0; cluster < kMeans ; cluster++)
+                    {
+                        if (count[cluster] > 0)
+                        {
+                            centroids[cluster * 3] = (float)(sumR[cluster] / count[cluster]);
+                            centroids[cluster * 3 + 1] = (float)(sumG[cluster] / count[cluster]);
+                            centroids[cluster * 3 + 2] = (float)(sumB[cluster] / count[cluster]);
+                        }
+                        else
+                        {
+                            int index = rand.Next(pixelCount);
+                            byte* p = buffer + index * bytesPerPixel;
+                            centroids[cluster * 3] = p[2];
+                            centroids[cluster * 3 + 1] = p[1];
+                            centroids[cluster * 3 + 2] = p[0];
+                        }
+                    }
+                }
+
+                for (int i = 0; i < pixelCount; i++)
+                {
+                    byte* p = buffer + i * bytesPerPixel;
+                    int cluster = assignments[i];
+                    p[0] = (byte)Math.Clamp((int)centroids[cluster * 3 + 2], 0, 255);
+                    p[1] = (byte)Math.Clamp((int)centroids[cluster * 3 + 1], 0, 255);
+                    p[2] = (byte)Math.Clamp((int)centroids[cluster * 3], 0, 255);
                 }
             }
 
@@ -423,22 +580,30 @@ namespace lab1.Windows
 
         private void TextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is TextBox textBox && textBox.Tag is string tagString)
             {
-                if (int.TryParse(textBox.Text, out int value))
+                string[] limits = tagString.Split(',');
+                if (limits.Length == 2 && int.TryParse(limits[0], out int min) && int.TryParse(limits[1], out int max))
                 {
-                    if (value < 2) value = 2;
-                    if (value > 255) value = 255;
+                    if (int.TryParse(textBox.Text, out int value))
+                    {
+                        value = Math.Max(min, Math.Min(max, value));
+                    }
+                    else
+                    {
+                        value = min;
+                    }
+                    textBox.Text = value.ToString();
                 }
-                else
-                {
-                    value = 2;
-                }
-                textBox.Text = value.ToString();
             }
         }
 
         [GeneratedRegex("^[0-9]+$")]
         private static partial Regex NumericInputRegex();
+
+        private void ApplyKMeansQuantization_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyKMeansColorQuantization();
+        }
     }
 }
