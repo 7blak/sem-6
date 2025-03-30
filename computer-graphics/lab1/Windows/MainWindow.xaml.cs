@@ -356,6 +356,14 @@ namespace lab1.Windows
                 assignments[i] = -1;
 
             float[] centroids = new float[kMeans * 3];
+            double[] sumR = new double[kMeans];
+            double[] sumG = new double[kMeans];
+            double[] sumB = new double[kMeans];
+            int[] count = new int[kMeans];
+
+            bool changed = true;
+            int iteration = 0;
+
             Random rand = new(randomSeed);
 
             filteredImage.Lock();
@@ -371,18 +379,6 @@ namespace lab1.Windows
                     centroids[cluster * 3 + 1] = p[1];
                     centroids[cluster * 3 + 2] = p[0];
                 }
-            }
-            double[] sumR = new double[kMeans];
-            double[] sumG = new double[kMeans];
-            double[] sumB = new double[kMeans];
-            int[] count = new int[kMeans];
-
-            bool changed = true;
-            int iteration = 0;
-
-            unsafe
-            {
-                byte* buffer = (byte*)filteredImage.BackBuffer;
 
                 while (changed && iteration < kMeansMaxIterations)
                 {
