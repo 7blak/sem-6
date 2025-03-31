@@ -18,6 +18,16 @@ namespace lab1.Windows
     {
         private BitmapSource? _originalImage;
         private WriteableBitmap? _filteredImage;
+        private bool _ditheringUsesYCbCr = false;
+        public bool DitheringUsesYCbCr
+        {
+            get => _ditheringUsesYCbCr;
+            set
+            {
+                _ditheringUsesYCbCr = value;
+                OnPropertyChanged(nameof(DitheringUsesYCbCr));
+            }
+        }
         private int _randomSeed = 999;
         public int RandomSeed
         {
@@ -251,7 +261,81 @@ namespace lab1.Windows
             _filteredImage.Unlock();
             FilteredImage.Source = _filteredImage;
         }
+        
+        private void ApplyAverageDithering2()
+        {
+            if (_filteredImage == null)
+                return;
 
+            _averageDitheringLevel = _averageDitheringLevel < 2 ? 2 : _averageDitheringLevel;
+            _averageDitheringLevel = _averageDitheringLevel > 255 ? 255 : _averageDitheringLevel;
+
+            YCbCrBitmap yCbCrBitmap = new(_filteredImage);
+
+            int bins = AverageDitheringLevel - 1;
+            double binWidth = 255.0 / bins;
+            int height = yCbCrBitmap.Height;
+            int width = yCbCrBitmap.Width;
+
+            double[] sumY = new double[bins];
+            double[] sumCb = new double[bins];
+            double[] sumCr = new double[bins];
+            int[] countY = new int[bins];
+            int[] countCb = new int[bins];
+            int[] countCr = new int[bins];
+
+            for (int j = 0; j < height; j++)
+            {
+                for (int i = 0; i < width; i++)
+                {
+                    int index = j * width + i;
+                    int binIndexY = Math.Min((int)(yCbCrBitmap.Y[index] / binWidth), bins - 1);
+                    int binIndexCb = Math.Min((int)(yCbCrBitmap.Cb[index] / binWidth), bins - 1);
+                    int binIndexCr = Math.Min((int)(yCbCrBitmap.Cr[index] / binWidth), bins - 1);
+
+                    sumY[binIndexY] += yCbCrBitmap.Y[index];
+                    sumCb[binIndexCb] += yCbCrBitmap.Cb[index];
+                    sumCr[binIndexCr] += yCbCrBitmap.Cr[index];
+
+                    countY[binIndexY]++;
+                    countCb[binIndexCb]++;
+                    countCr[binIndexCr]++;
+                }
+            }
+
+            double[] avgY = new double[bins];
+            double[] avgCb = new double[bins];
+            double[] avgCr = new double[bins];
+
+            for (int i = 0; i < bins; i++)
+            {
+                double lowerBound = i * binWidth;
+                double upperBound = (i + 1) * binWidth;
+                double midPoint = (lowerBound + upperBound) / 2.0;
+
+                avgY[i] = (countY[i] > 0) ? (sumY[i] / countY[i]) : midPoint;
+                avgCb[i] = (countCb[i] > 0) ? (sumCb[i] / countCb[i]) : midPoint;
+                avgCr[i] = (countCr[i] > 0) ? (sumCr[i] / countCr[i]) : midPoint;
+            }
+
+            for (int j = 0; j < height; j++)
+            {
+                for (int i = 0; i < width; i++)
+                {
+                    int index = j * width + i;
+                    int binIndexY = Math.Min((int)(yCbCrBitmap.Y[index] / binWidth), bins - 1);
+                    int binIndexCb = Math.Min((int)(yCbCrBitmap.Cb[index] / binWidth), bins - 1);
+                    int binIndexCr = Math.Min((int)(yCbCrBitmap.Cr[index] / binWidth), bins - 1);
+
+                    yCbCrBitmap.Y[index] = (byte)(yCbCrBitmap.Y[index] <= avgY[binIndexY] ? binIndexY * binWidth : (binIndexY + 1) * binWidth);
+                    yCbCrBitmap.Cb[index] = (byte)(yCbCrBitmap.Cb[index] <= avgCb[binIndexCb] ? binIndexCb * binWidth : (binIndexCb + 1) * binWidth);
+                    yCbCrBitmap.Cr[index] = (byte)(yCbCrBitmap.Cr[index] <= avgCr[binIndexCr] ? binIndexCr * binWidth : (binIndexCr + 1) * binWidth);
+                }
+            }
+
+            _filteredImage = yCbCrBitmap.ConvertToRGBBitmap();
+            FilteredImage.Source = _filteredImage;
+        }
         private void ApplyAverageDithering()
         {
             if (_filteredImage == null)
@@ -534,7 +618,10 @@ namespace lab1.Windows
 
         private void ApplyAverageDithering_Click(object sender, RoutedEventArgs e)
         {
-            ApplyAverageDithering();
+            if (!_ditheringUsesYCbCr)
+                ApplyAverageDithering();
+            else
+                ApplyAverageDithering2();
         }
 
         private void TextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
@@ -582,6 +669,15 @@ namespace lab1.Windows
 
             FilteredScrollViewer.HorizontalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
             FilteredScrollViewer.VerticalScrollBarVisibility = isStretchNone ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+        }
+
+        private void ToggleYCbCrDithering_Click(object sender, RoutedEventArgs e)
+        {
+            _ditheringUsesYCbCr = DitheringUsesYCbCr ? false : true;
+
+            var menuItem = sender as MenuItem;
+            if (menuItem != null)
+                menuItem.Header = "[YCbCr] Toggle Dithering Mode";
         }
     }
 }
