@@ -386,14 +386,6 @@ namespace lab1.Windows
                     changed = false;
                     iteration++;
 
-                    for (int i = 0; i < _kMeans; i++)
-                    {
-                        sumR[i] = 0;
-                        sumG[i] = 0;
-                        sumB[i] = 0;
-                        count[i] = 0;
-                    }
-
                     for (int i = 0; i < pixelCount; i++)
                     {
                         byte* p = buffer + i * bytesPerPixel;
@@ -441,6 +433,10 @@ namespace lab1.Windows
                             centroids[cluster * 3 + 1] = p[1];
                             centroids[cluster * 3 + 2] = p[0];
                         }
+                        sumR[cluster] = 0;
+                        sumG[cluster] = 0;
+                        sumB[cluster] = 0;
+                        count[cluster] = 0;
                     }
                 }
 
