@@ -673,10 +673,9 @@ namespace lab1.Windows
 
         private void ToggleYCbCrDithering_Click(object sender, RoutedEventArgs e)
         {
-            _ditheringUsesYCbCr = DitheringUsesYCbCr ? false : true;
+            _ditheringUsesYCbCr = !DitheringUsesYCbCr;
 
-            var menuItem = sender as MenuItem;
-            if (menuItem != null)
+            if (sender is MenuItem menuItem)
                 menuItem.Header = "[YCbCr] Toggle Dithering Mode";
         }
     }

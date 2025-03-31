@@ -13,6 +13,7 @@ namespace lab1
         public double[] Y { get; set; }
         public double[] Cb { get; set; }
         public double[] Cr { get; set; }
+        public double[] Alphas { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
 
@@ -24,6 +25,7 @@ namespace lab1
             Y = new double[Width * Height];
             Cb = new double[Width * Height];
             Cr = new double[Width * Height];
+            Alphas = new double[Width * Height];
             int bytesPerPixel = (bmp.Format.BitsPerPixel + 7) / 8;
             bmp.Lock();
             unsafe
@@ -42,6 +44,7 @@ namespace lab1
                         Y[index] = 0.299 * r + 0.587 * g + 0.114 * b;
                         Cb[index] = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
                         Cr[index] = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+                        Alphas[index] = p[3];
                         p += bytesPerPixel;
                     }
                 }
@@ -50,7 +53,7 @@ namespace lab1
 
         public WriteableBitmap ConvertToRGBBitmap()
         {
-            WriteableBitmap bmp = new WriteableBitmap(Width, Height, _originalBitmap.DpiX, _originalBitmap.DpiY, _originalBitmap.Format, _originalBitmap.Palette);
+            WriteableBitmap bmp = new WriteableBitmap(Width, Height, _originalBitmap.DpiX, _originalBitmap.DpiY, _originalBitmap.Format, null);
             int bytesPerPixel = (bmp.Format.BitsPerPixel + 7) / 8;
             bmp.Lock();
             unsafe
@@ -65,9 +68,10 @@ namespace lab1
                         byte r = (byte)(Y[index] + 1.402 * (Cr[index] - 128));
                         byte g = (byte)(Y[index] - 0.344136 * (Cb[index] - 128) - 0.714136 * (Cr[index] - 128));
                         byte b = (byte)(Y[index] + 1.772 * (Cb[index] - 128));
-                        p[2] = r;
-                        p[1] = g;
-                        p[0] = b;
+                        p[3] = (byte)Alphas[index];
+                        p[2] = Math.Clamp(r, (byte)0, (byte)255);
+                        p[1] = Math.Clamp(g, (byte)0, (byte)255);
+                        p[0] = Math.Clamp(b, (byte)0, (byte)255);
                         p += bytesPerPixel;
                     }
                 }
