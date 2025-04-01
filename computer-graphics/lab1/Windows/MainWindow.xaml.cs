@@ -676,7 +676,7 @@ namespace lab1.Windows
             _ditheringUsesYCbCr = !DitheringUsesYCbCr;
 
             if (sender is MenuItem menuItem)
-                menuItem.Header = "[YCbCr] Toggle Dithering Mode";
+                menuItem.Header = _ditheringUsesYCbCr ? "[YCbCr] Toggle Dithering Mode" : "[RGB] Toggle Dithering Mode";
         }
     }
 }
