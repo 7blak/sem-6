@@ -107,6 +107,7 @@
                     </MenuItem.Header>
                 </MenuItem>
                 <MenuItem Header="Toggle Stretch" Click="ToggleStretch_Click" Foreground="Black"/>
+                <MenuItem Header="[RGB] Toggle Dithering Mode" Click="ToggleYCbCrDithering_Click" Foreground="Black"/>
             </MenuItem>
         </Menu>
         <ScrollViewer x:Name="OriginalScrollViewer" Grid.Row="1"  Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
