@@ -33,8 +33,8 @@ public class Engine {
             Scanner scanner = new Scanner(System.in);
             System.out.println("AVAIABLE TASKS:");
             System.out.println("1 - Small sample task (similar to the one from pdf, 1 clientAgents 3 deliveryAgents 3 marketAgents)");
-            System.out.println("2 - Test with multiple clients, delivery agents and markets");
-            System.out.println("3 - One client with many delivery agents");
+            System.out.println("2 - Test with multiple clients (5), delivery agents (5) and markets (6)");
+            System.out.println("3 - One client with many delivery agents (5) and markets (6)");
             System.out.println("4 - ULTIMATE test (randomly generated 100 ClientAgents, DeliveryAgents, MarketAgents) each with randomized orders, stock etc.");
             System.out.println("5 - [CAREFUL] VERY ULTIMATE test (same as 4 but 1000 :p)");
             System.out.println("--------");

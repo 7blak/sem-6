@@ -10,4 +10,7 @@
   <ItemGroup>
     <None Remove="stardew.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Page Include="App.xaml" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using lab1.Filters;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -13,30 +14,30 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace lab1
+namespace lab1.Windows
 {
     public partial class CustomFilterWindow : Window
     {
         private int _rows = 3;
         private int _columns = 3;
-        private TextBox[,] _gridCells = new TextBox[9, 9];
+        private readonly TextBox[,] _gridCells = new TextBox[9, 9];
         private readonly ConvolutionFilter _originalFilter;
-        private ObservableCollection<ConvolutionFilter> _originalFilters;
+        private readonly ObservableCollection<ConvolutionFilter> _originalFilters;
         private ConvolutionFilter _currentFilter { get; set; }
-        private bool finished = false;
+        private bool _finished = false;
 
         public CustomFilterWindow(ObservableCollection<ConvolutionFilter> convolutionFilters)
         {
             InitializeComponent();
             _originalFilters = convolutionFilters;
-            _currentFilter = convolutionFilters[convolutionFilters.Count - 1];
+            _currentFilter = convolutionFilters[^1];
             _originalFilter = _currentFilter;
             InitializeForm();
         }
 
         private void InitializeForm()
         {
-            int[] values = { 1, 3, 5, 7, 9 };
+            int[] values = [1, 3, 5, 7, 9];
 
             DivisorTextBox.Text = _currentFilter.Divisor.ToString();
             OffsetTextBox.Text = _currentFilter.Offset.ToString();
@@ -46,7 +47,7 @@ namespace lab1
             RowsComboBox.ItemsSource = values;
             ColumnsComboBox.ItemsSource = values;
 
-            if (!finished)
+            if (!_finished)
             {
                 PresetComboBox.ItemsSource = _originalFilters;
                 PresetComboBox.SelectedIndex = _originalFilters.Count - 1;
@@ -63,11 +64,11 @@ namespace lab1
 
             CreateGrid();
             _gridCells[(int)_currentFilter.Anchor.Y + _rows / 2, (int)_currentFilter.Anchor.X + _columns / 2].Background = Brushes.Wheat;
-            finished = true;
+            _finished = true;
         }
         private void RowsColumnsChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (RowsComboBox.SelectedItem != null && ColumnsComboBox.SelectedItem != null && finished)
+            if (RowsComboBox.SelectedItem != null && ColumnsComboBox.SelectedItem != null && _finished)
             {
                 _rows = (int)RowsComboBox.SelectedItem;
                 _columns = (int)ColumnsComboBox.SelectedItem;
@@ -105,7 +106,7 @@ namespace lab1
             {
                 for (int j = 0; j < 9; j++)
                 {
-                    TextBox cell = new TextBox
+                    TextBox cell = new()
                     {
                         Width = 30,
                         Height = 30,
@@ -232,11 +233,10 @@ namespace lab1
         {
             ValidateDivisor(DivisorTextBox, null!);
 
-            double divisor, offset, x, y;
-            if (!double.TryParse(DivisorTextBox.Text, out divisor) ||
-            !double.TryParse(OffsetTextBox.Text, out offset) ||
-            !double.TryParse(XTextBox.Text, out x) ||
-            !double.TryParse(YTextBox.Text, out y))
+            if (!double.TryParse(DivisorTextBox.Text, out double divisor) ||
+            !double.TryParse(OffsetTextBox.Text, out double offset) ||
+            !double.TryParse(XTextBox.Text, out double x) ||
+            !double.TryParse(YTextBox.Text, out double y))
             {
                 MessageBox.Show("Please enter valid numbers.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
@@ -290,7 +290,7 @@ namespace lab1
 
         private void PresetChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ComboBox comboBox && finished)
+            if (sender is ComboBox comboBox && _finished)
             {
                 _currentFilter = (ConvolutionFilter)comboBox.SelectedItem;
                 InitializeForm();
@@ -308,7 +308,7 @@ namespace lab1
             if (!int.TryParse(XTextBox.Text, out int x) || !int.TryParse(YTextBox.Text, out int y) || x < 0 || y < 0)
                 return;
             UpdateGridVisibility();
-            if (finished && y < _rows && x < _columns && _gridCells[y, x] != null)
+            if (_finished && y < _rows && x < _columns && _gridCells[y, x] != null)
                 _gridCells[y, x].Background = Brushes.Wheat;
         }
 
