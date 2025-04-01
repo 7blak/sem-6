@@ -1,3 +1,6 @@
 [submodule "software-engineering-2/lab2"]
 	path = software-engineering-2/lab2
 	url = https://github.com/michade/se2-mini-2025-Tue10-gr2
+[submodule "software-engineering-2/dvs"]
+	path = software-engineering-2/dvs
+	url = https://github.com/zanpatryk/dvs.git
