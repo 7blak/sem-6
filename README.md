@@ -35,7 +35,7 @@ One example project is **matrix-vector multiplication**, which splits matrix cal
 Clone the repository and navigate to the project folder:  
 ```sh
 git clone https://github.com/7blak/sem-6 -b high-performance-computing
-cd high-performance-computing/matrix-vector-mult
+cd sem-6/high-performance-computing/matrix-vector-mult
 mpicc -o main main.c mmio.c -lm
 ```
 Example execution:
