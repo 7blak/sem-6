@@ -43,6 +43,7 @@ Example execution:
 mpirun --hostfile hosts.txt -np 4 ./mpi_matvec test.mtx # You need 4 hosts in a hosts.txt file
 mpirun --mca btl_tcp_if_include eth0 -host p30413,p30414,p30415,p30410 -np 4 ./mpi_matvec bcsstk03.mtx # Example configuration using local PCs at our faculty
 ```
+Do note that you need to have [MPICH](https://www.mpich.org/downloads/) installed.
 
 ## 🔧 Software Engineering (software-engineering-2)  
 **Technologies:** C#  
