@@ -23,10 +23,26 @@ It is an image filtering app that allows the user to apply various filters to an
 
 ---
 
-## 🚀 High Performance Computing (high-performance-computing)
-**Technologies:** C, MPI
+## 🚀 High Performance Computing (high-performance-computing)  
+**Technologies:** C, MPI  
 
-This folder contains C code written for the course High Performance Computing. Here I am working with MPI to distribute and run the code on different machines and then retrieve all the results, for example the matrix-vector-mult program which multiplies matrices with vectors while splitting the calculation across different computers.
+This folder contains **C code** written for the **High Performance Computing** course.  
+It focuses on **MPI (Message Passing Interface)** to distribute computations across multiple machines and retrieve results.  
+
+One example project is **matrix-vector multiplication**, which splits matrix calculations across different computers for parallel execution.  
+
+### 🔹 Running the Code  
+Clone the repository and navigate to the project folder:  
+```sh
+git clone https://github.com/7blak/sem-6 -b high-performance-computing
+cd high-performance-computing/matrix-vector-mult
+mpicc -o main main.c mmio.c -lm
+```
+Example execution:
+```sh
+mpirun --hostfile hosts.txt -np 4 ./mpi_matvec test.mtx # You need 4 hosts in a hosts.txt file
+mpirun --mca btl_tcp_if_include eth0 -host p30413,p30414,p30415,p30410 -np 4 ./mpi_matvec bcsstk03.mtx # Example configuration using local PCs at our faculty
+```
 
 ## 🔧 Software Engineering (software-engineering-2)  
 **Technologies:** C#  
