@@ -19,6 +19,7 @@ git checkout $branch
 
 # Set sparse-checkout to include root-level files (".") and the branch-specific folder ("$branch/")
 git sparse-checkout set "$branch/"
+git sparse-checkout add sb.ps1
 
 git sparse-checkout reapply
 
