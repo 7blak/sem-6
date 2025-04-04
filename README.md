@@ -23,6 +23,11 @@ It is an image filtering app that allows the user to apply various filters to an
 
 ---
 
+## 🚀 High Performance Computing (high-performance-computing)
+**Technologies:** C, MPI
+
+This folder contains C code written for the course High Performance Computing. Here I am working with MPI to distribute and run the code on different machines and then retrieve all the results, for example the matrix-vector-mult program which multiplies matrices with vectors while splitting the calculation across different computers.
+
 ## 🔧 Software Engineering (software-engineering-2)  
 **Technologies:** C#  
 
