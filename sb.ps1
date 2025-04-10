@@ -39,8 +39,4 @@ git sparse-checkout set "$branch/"
 
 git sparse-checkout reapply
 
-git pull								# git pullall
-
-git submodule update --init --recursive # git pullall
-
 Write-Host "Sparse checkout configured: only root-level files and the '$branch/' folder are checked out."
