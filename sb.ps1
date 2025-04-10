@@ -1,5 +1,6 @@
 param (
-    [string]$branch
+    [string]$branch,
+	[switch]$nopull
 )
 
 $inGitRepo = git rev-parse --is-inside-work-tree 2>$null
@@ -30,12 +31,28 @@ if ($branch -eq "main") {
 }
 
 Write-Host "Switching to branch '$branch' and configuring sparse checkout..."
-git submodule --quiet deinit -f .
+git submodule --quiet deinit -f . >$null 2>&1
 
 git checkout $branch --
 
 git sparse-checkout set "$branch/"
 
 git sparse-checkout reapply
+
+if (-not $nopull) {
+	Write-Host "Populating submodules..."
+	$submodules = git config --file .gitmodules --get-regexp path | ForEach-Object {
+		$_.Split(" ")[1]
+	}
+	
+	foreach ($sub in $submodules) {
+		if (Test-Path $sub) {
+			Write-Host "Updating submodule: $sub"
+			git submodule update --init --recursive -- "$sub"
+		} else {
+			Write-Host "Skipping submodule not in sparse-checkout: $sub"
+		}
+	}
+}
 
 Write-Host "Sparse checkout configured: only root-level files and the '$branch/' folder are checked out."
