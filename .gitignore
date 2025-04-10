@@ -401,7 +401,7 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### sem-6 custom ###
+### sem-6 Custom ###
 /APDescription.txt
 /MTPs-Main-Container.txt
 high-performance-computing/matrix-vector-mult/mpi_matvec
