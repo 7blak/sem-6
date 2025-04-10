@@ -1,6 +1,6 @@
 # Semester 6 - Computer Science Projects
 
-This repository contains **team projects** I contributed to and **individual projects** completed during **Semester 6** of my **Computer Science** studies.
+This repository contains **team projects** I contributed to and **individual projects** completed during **Semester 6** of my **Computer Science** studies. On Windows you can use /sb <branch> to apply a sparse-checkout, that will only show the folder associated with said branch.
 
 ## 🤖 Agent Systems (agent-systems)  
 **Technologies:** Java (JADE), Python (Mesa)  
