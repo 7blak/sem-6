@@ -400,7 +400,8 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### sem-6 custom ###
 /APDescription.txt
 /MTPs-Main-Container.txt
 high-performance-computing/matrix-vector-mult/mpi_matvec
-sb.ps1
