@@ -30,9 +30,16 @@ if ($branch -eq "main") {
 }
 
 Write-Host "Switching to branch '$branch' and configuring sparse checkout..."
+
 git checkout $branch --
 
+git submodule deinit -f .
+
 git sparse-checkout set "$branch/"
+
+git pull								# git pullall
+
+git submodule update --init --recursive # git pullall
 
 git sparse-checkout reapply
 
