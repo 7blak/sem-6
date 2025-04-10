@@ -33,8 +33,6 @@ Write-Host "Switching to branch '$branch' and configuring sparse checkout..."
 
 git checkout $branch --
 
-git submodule deinit -f .
-
 git sparse-checkout set "$branch/"
 
 git sparse-checkout reapply
