@@ -4,3 +4,6 @@
 [submodule "software-engineering-2/dvs"]
 	path = software-engineering-2/dvs
 	url = https://github.com/zanpatryk/dvs.git
+[submodule "agent-systems/asaa-smarthome"]
+	path = agent-systems/asaa-smarthome
+	url = https://github.com/YouRekt/asaa-smarthome
