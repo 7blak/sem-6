@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Microsoft.VisualBasic;
+using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -52,7 +53,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Line? _selectedLine = null;
     private System.Windows.Shapes.Line? _previewLine = null;
 
-    private WriteableBitmap _bitmap = new WriteableBitmap(400, 400, 96, 96, PixelFormats.Bgra32, null);
+    private WriteableBitmap _bitmap = new(400, 400, 96, 96, PixelFormats.Bgra32, null);
 
     private List<Line> _lines = [];
 
@@ -70,6 +71,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ClearBitmap();
     }
 
+    #region Menu Item Handlers
     private void MenuOpenFile_Click(object sender, RoutedEventArgs e)
     {
 
@@ -80,7 +82,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     }
 
-    #region Canvas Mouse Interaction
+    private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
+    {
+        LineThickness -= 1.0;
+    }
+
+    private void Button_IncreaseThicknessValue(object sender, RoutedEventArgs e)
+    {
+        LineThickness += 1.0;
+    }
+    #endregion
+
+    #region Canvas Mouse Interactions
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
         if (_isDrawing && _previewLine != null)
@@ -154,11 +167,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void Canvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
+        Point p = e.GetPosition(Canvas);
+        _selectedLine = _lines.FirstOrDefault(line => DistancePointToLine(p, new Point(line.X1, line.Y1), new Point(line.X2, line.Y2)) <= SELECT_LINE_ENDPOINT_TOLERANCE);
+        if (_selectedLine == null)
+            return;
 
+        ContextMenu cm = new();
+
+        MenuItem miDel = new() { Header = "Delete Line" };
+        miDel.Click += (_, __) =>
+        {
+            _lines.Remove(_selectedLine);
+            _selectedLine = null;
+            RedrawAllLines();
+        };
+        cm.Items.Add(miDel);
+
+        MenuItem miThick = new() { Header = "Thickness:" };
+        StackPanel miThickContainer = new();
+        TextBox tb = new() { Width = 25, Text = _selectedLine.Thickness.ToString() };
+        Binding miThickBind = new("_selectedLine.Thickness") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+        //tb.SetBinding(TextBox. miThickBind);
+        //miThickContainer.Children.Add();
+        cm.Items.Add(miThick);
+
+        MenuItem miColor = new() { Header = "Change Color..." };
+        ColorPicker cp = new() { Width = 50, SelectedColor = _selectedLine.Color };
+        Binding miColorBind = new("_selectedLine.Color") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+        cp.SetBinding(ColorPicker.SelectedColorProperty, miColorBind);
+        StackPanel miColorContainer = new();
+        miColorContainer.Children.Add(cp);
+        miColor.Header = miColorContainer;
+        miColor.StaysOpenOnClick = true;
+        cm.Items.Add(miColor);
+
+        cm.IsOpen = true;
     }
     #endregion
 
-    #region Line Interactions & Drawing
+    #region Bitmap Interactions & Drawing
     private void SelectLine(Line line, bool selectedStart)
     {
         _selectedLine = line;
@@ -269,6 +316,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _isDrawing = false;
     }
 
+    private void RedrawAllLines()
+    {
+        ClearBitmap();
+        foreach (var line in _lines)
+        {
+            DrawLine(line);
+        }
+    }
     private unsafe void ClearBitmap()
     {
         int width = _bitmap.PixelWidth;
@@ -292,13 +347,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
     #endregion
 
-    private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
+    #region Helper and Utility Functions
+    private static double DistancePointToLine(Point p, Point a, Point b)
     {
-        LineThickness -= 1.0;
+        Vector ap = p - a, ab = b - a;
+        double t = Vector.Multiply(ap, ab) / ab.LengthSquared;
+        t = Math.Max(0, Math.Min(1, t));
+        Point projection = a + t * ab;
+        return (p - projection).Length;
     }
-
-    private void Button_IncreaseThicknessValue(object sender, RoutedEventArgs e)
-    {
-        LineThickness += 1.0;
-    }
+    #endregion
 }
