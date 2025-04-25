@@ -28,6 +28,9 @@ public class Line
 
 public partial class MainWindow : Window
 {
+    public const int CANVAS_WIDTH = 1200;
+    public const int CANVAS_HEIGHT = 800;
+
     private const double SELECT_LINE_ENDPOINT_TOLERANCE = 8.0;
 
     private bool _isDrawing = false;
@@ -43,7 +46,7 @@ public partial class MainWindow : Window
     private Point _startPoint;
 
     private Line? _selectedLine = null;
-    private Line? _previewLine = null;
+    private System.Windows.Shapes.Line? _previewLine = null;
 
     private WriteableBitmap _bitmap = new WriteableBitmap(400, 400, 96, 96, PixelFormats.Bgra32, null);
 
@@ -104,15 +107,16 @@ public partial class MainWindow : Window
             _isDrawing = true;
             _startPoint = p;
             _selectedLine = null;
-            _previewLine = new()
+            _previewLine = new System.Windows.Shapes.Line()
             {
                 X1 = _startPoint.X,
                 Y1 = _startPoint.Y,
                 X2 = _startPoint.X,
                 Y2 = _startPoint.Y,
-                Color = _lineColor,
-                Thickness = _lineThickness
+                Stroke = new SolidColorBrush(_lineColor),
+                StrokeThickness = _lineThickness,
             };
+            CanvasHost.Children.Add(_previewLine);
         }
     }
 
@@ -247,6 +251,7 @@ public partial class MainWindow : Window
 
         _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
         _bitmap.Unlock();
+        CanvasHost.Children.Remove(_previewLine);
         Canvas.Source = _bitmap;
         _isDrawing = false;
     }

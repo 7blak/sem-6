@@ -18,13 +18,13 @@
             </MenuItem>
         </Menu>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <Image x:Name="Canvas"
-                   Height="400" Width="400"
-                   MouseMove="Canvas_MouseMove"
-                   MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
-                   MouseLeftButtonUp="Canvas_MouseLeftButtonUp"
-                   MouseRightButtonDown="Canvas_MouseRightButtonDown">
-            </Image>
+            <Canvas x:Name="CanvasHost" Width="400" Height="400"
+                    MouseMove="Canvas_MouseMove"
+                    MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
+                    MouseLeftButtonUp="Canvas_MouseLeftButtonUp"
+                    MouseRightButtonDown="Canvas_MouseRightButtonDown">
+                <Image x:Name="Canvas" Height="400" Width="400" />
+            </Canvas>
         </ScrollViewer>
     </Grid>
 </Window>
