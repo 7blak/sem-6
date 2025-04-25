@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -8,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Xceed.Wpf.Toolkit;
 
 namespace rasterization_2;
 
@@ -26,7 +28,7 @@ public class Line
     }
 }
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, INotifyPropertyChanged
 {
     public const int CANVAS_WIDTH = 1200;
     public const int CANVAS_HEIGHT = 800;
@@ -39,8 +41,10 @@ public partial class MainWindow : Window
     private bool _selectedEnd = false;
 
     private double _lineThickness = 4.0;
+    public double LineThickness { get { return _lineThickness; } set { if (_lineThickness != value) { _lineThickness = value <= 0 ? 1 : value; OnPropertyChanged(nameof(LineThickness)); } } }
 
     private Color _lineColor = Colors.Black;
+    public Color LineColor { get { return _lineColor; } set { if (_lineColor != value) { _lineColor = value; OnPropertyChanged(nameof(LineColor)); } } }
     private Color _backgroundColor = Colors.White;
 
     private Point _startPoint;
@@ -52,9 +56,17 @@ public partial class MainWindow : Window
 
     private List<Line> _lines = [];
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
     public MainWindow()
     {
         InitializeComponent();
+        DataContext = this;
         ClearBitmap();
     }
 
@@ -125,7 +137,8 @@ public partial class MainWindow : Window
         Point p = e.GetPosition(Canvas);
         if (_isDrawing)
         {
-            Line newLine = new(){
+            Line newLine = new()
+            {
                 X1 = _startPoint.X,
                 Y1 = _startPoint.Y,
                 X2 = p.X,
@@ -278,4 +291,14 @@ public partial class MainWindow : Window
         Canvas.Source = _bitmap;
     }
     #endregion
+
+    private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
+    {
+        LineThickness -= 1.0;
+    }
+
+    private void Button_IncreaseThicknessValue(object sender, RoutedEventArgs e)
+    {
+        LineThickness += 1.0;
+    }
 }
