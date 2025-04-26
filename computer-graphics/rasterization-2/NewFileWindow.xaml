@@ -1,0 +1,44 @@
+﻿<Window x:Class="rasterization_2.NewFileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:rasterization_2"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        mc:Ignorable="d"
+        Title="New image..." Height="200" Width="200" Topmost="True" ResizeMode="NoResize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Label HorizontalAlignment="Left" VerticalAlignment="Center">Width:</Label>
+        <TextBox Grid.Column="1" Name="TextBoxWidth" HorizontalAlignment="Stretch" VerticalAlignment="Center" Text="{Binding XWidth, Mode=TwoWay}" 
+                 PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus" Tag="1,10000"/>
+        <Label Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">px</Label>
+
+        <Label Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center">Height:</Label>
+        <TextBox Grid.Row="1" Grid.Column="1" Name="TextBoxHeight" HorizontalAlignment="Stretch" VerticalAlignment="Center" Text="{Binding XHeight, Mode=TwoWay}" 
+                 PreviewTextInput="TextBox_PreviewTextInput" LostFocus="TextBox_LostFocus" Tag="1,10000"/>
+        <Label Grid.Row="1" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center">px</Label>
+
+        <Label Grid.Row="2" HorizontalAlignment="Left" VerticalAlignment="Center">Background:</Label>
+        <xctk:ColorPicker Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" Name="colorPicker" SelectedColor="{Binding Color, Mode=TwoWay}" Margin="0,0,5,0"/>
+
+        <Grid Grid.Row="3" Grid.ColumnSpan="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Name="ButtonCancel" Content="Cancel" HorizontalAlignment="Stretch" VerticalAlignment="Center" Click="ButtonCancel_Click" Margin="10,0,10,0"/>
+            <Button Grid.Column="1" Name="ButtonOK" Content="OK" HorizontalAlignment="Stretch" VerticalAlignment="Center" Click="ButtonOK_Click" Margin="10,0,10,0"/>
+        </Grid>
+    </Grid>
+</Window>

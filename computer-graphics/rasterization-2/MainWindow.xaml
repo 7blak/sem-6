@@ -14,8 +14,10 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="File">
-                <MenuItem Header="Open file..." Click="MenuOpenFile_Click"/>
-                <MenuItem Header="Save file..." Click="MenuSaveFile_Click"/>
+                <MenuItem Header="New..." Click="MenuNew_Click" />
+                <MenuItem Header="Open..." Click="MenuOpenFile_Click"/>
+                <MenuItem Header="Save" Click="MenuSave_Click" />
+                <MenuItem Header="Save As..." Click="MenuSaveFile_Click"/>
             </MenuItem>
             <MenuItem Header="Tools">
                 <MenuItem StaysOpenOnClick="True">

@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic;
+using Microsoft.Win32;
 using System.ComponentModel;
 using System.Text;
 using System.Windows;
@@ -11,17 +12,50 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Xceed.Wpf.Toolkit;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace rasterization_2;
 
-public class Line
+public class Line : INotifyPropertyChanged
 {
-    public double X1 { get; set; }
-    public double Y1 { get; set; }
-    public double X2 { get; set; }
-    public double Y2 { get; set; }
-    public Color Color { get; set; }
-    public double Thickness { get; set; }
+    private double _x1, _y1, _x2, _y2, _thickness;
+    private Color _color;
+
+    public double X1
+    {
+        get => _x1;
+        set { _x1 = value; OnPropertyChanged(nameof(X1)); }
+    }
+    public double Y1
+    {
+        get => _y1;
+        set { _y1 = value; OnPropertyChanged(nameof(Y1)); }
+    }
+    public double X2
+    {
+        get => _x2;
+        set { _x2 = value; OnPropertyChanged(nameof(X2)); }
+    }
+    public double Y2
+    {
+        get => _y2;
+        set { _y2 = value; OnPropertyChanged(nameof(Y2)); }
+    }
+    public double Thickness
+    {
+        get => _thickness;
+        set { _thickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(Thickness)); }
+    }
+    public Color Color
+    {
+        get => _color;
+        set { _color = value; OnPropertyChanged(nameof(Color)); }
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
     public Line()
     {
         Color = Colors.Black;
@@ -41,11 +75,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private bool _selectedStart = false;
     private bool _selectedEnd = false;
 
-    private double _lineThickness = 4.0;
-    public double LineThickness { get { return _lineThickness; } set { if (_lineThickness != value) { _lineThickness = value <= 0 ? 1 : value; OnPropertyChanged(nameof(LineThickness)); } } }
+    private double _lineThickness = 3.0;
 
     private Color _lineColor = Colors.Black;
-    public Color LineColor { get { return _lineColor; } set { if (_lineColor != value) { _lineColor = value; OnPropertyChanged(nameof(LineColor)); } } }
     private Color _backgroundColor = Colors.White;
 
     private Point _startPoint;
@@ -56,6 +88,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private WriteableBitmap _bitmap = new(400, 400, 96, 96, PixelFormats.Bgra32, null);
 
     private List<Line> _lines = [];
+
+    public double LineThickness { get { return _lineThickness; } set { if (_lineThickness != value) { _lineThickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(LineThickness)); } } }
+
+    public Color LineColor { get { return _lineColor; } set { if (_lineColor != value) { _lineColor = value; OnPropertyChanged(nameof(LineColor)); } } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -72,11 +108,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     #region Menu Item Handlers
+    private void MenuNew_Click(object sender, RoutedEventArgs e)
+    {
+        NewFileWindow newFileWindow = new();
+        if (newFileWindow.ShowDialog() == true)
+        {
+            _bitmap = new WriteableBitmap(newFileWindow.XWidth, newFileWindow.XHeight, 96, 96, PixelFormats.Bgra32, null);
+            _backgroundColor = newFileWindow.Color;
+            CanvasHost.Width = newFileWindow.XWidth;
+            CanvasHost.Height = newFileWindow.XHeight;
+            Canvas.Width = newFileWindow.XWidth;
+            Canvas.Height = newFileWindow.XHeight;
+            ClearBitmap();
+        }
+    }
     private void MenuOpenFile_Click(object sender, RoutedEventArgs e)
     {
 
     }
+    private void MenuSave_Click(object sender, RoutedEventArgs e)
+    {
 
+    }
     private void MenuSaveFile_Click(object sender, RoutedEventArgs e)
     {
 
@@ -84,12 +137,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
     {
-        LineThickness -= 1.0;
+        LineThickness -= 2.0;
     }
 
     private void Button_IncreaseThicknessValue(object sender, RoutedEventArgs e)
     {
-        LineThickness += 1.0;
+        LineThickness += 2.0;
     }
     #endregion
 
@@ -184,18 +237,51 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         cm.Items.Add(miDel);
 
         MenuItem miThick = new() { Header = "Thickness:" };
-        StackPanel miThickContainer = new();
+        StackPanel miThickContainer = new() { Orientation = Orientation.Horizontal };
+        Button btl = new() { Content = "<<", Width = 25, VerticalAlignment = VerticalAlignment.Center };
+        btl.Click += (_, __) =>
+        {
+            _selectedLine.Thickness -= 2.0;
+            RedrawAllLines();
+        };
+        Button btr = new() { Content = ">>", Width = 25, VerticalAlignment = VerticalAlignment.Center };
+        btr.Click += (_, __) =>
+        {
+            _selectedLine.Thickness += 2.0;
+            RedrawAllLines();
+        };
         TextBox tb = new() { Width = 25, Text = _selectedLine.Thickness.ToString() };
-        Binding miThickBind = new("_selectedLine.Thickness") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
-        //tb.SetBinding(TextBox. miThickBind);
-        //miThickContainer.Children.Add();
+        Thickness margin = tb.Margin;
+        margin.Left = 10;
+        margin.Right = 10;
+        tb.Margin = margin;
+        Binding miThickBind = new("Thickness") { Source = _selectedLine, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+        tb.SetBinding(TextBox.TextProperty, miThickBind);
+        tb.LostKeyboardFocus += (_, __) =>
+        {
+            if (double.TryParse(tb.Text, out double newThickness))
+            {
+                _selectedLine.Thickness = newThickness;
+                RedrawAllLines();
+            }
+        };
+        miThickContainer.Children.Add(btl);
+        miThickContainer.Children.Add(tb);
+        miThickContainer.Children.Add(btr);
+        miThick.Header = miThickContainer;
+        miThick.StaysOpenOnClick = true;
         cm.Items.Add(miThick);
 
         MenuItem miColor = new() { Header = "Change Color..." };
-        ColorPicker cp = new() { Width = 50, SelectedColor = _selectedLine.Color };
-        Binding miColorBind = new("_selectedLine.Color") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
-        cp.SetBinding(ColorPicker.SelectedColorProperty, miColorBind);
         StackPanel miColorContainer = new();
+        ColorPicker cp = new() { Width = 50, SelectedColor = _selectedLine.Color };
+        Binding miColorBind = new("Color") { Source = _selectedLine, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+        cp.SetBinding(ColorPicker.SelectedColorProperty, miColorBind);
+        cp.SelectedColorChanged += (_, __) =>
+        {
+            _selectedLine.Color = (Color)cp.SelectedColor;
+            RedrawAllLines();
+        };
         miColorContainer.Children.Add(cp);
         miColor.Header = miColorContainer;
         miColor.StaysOpenOnClick = true;
