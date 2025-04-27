@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:rasterization_2"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="New image..." Height="200" Width="200" Topmost="True" ResizeMode="NoResize">
+        Title="New image..." Height="200" Width="200" Topmost="True" ResizeMode="NoResize" WindowStyle="ToolWindow">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>

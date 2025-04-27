@@ -1,7 +1,9 @@
 ﻿using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using System.ComponentModel;
+using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -112,9 +114,15 @@ public class Circle : INotifyPropertyChanged
 
 public class Polygon : INotifyPropertyChanged
 {
+    private int _selectedVertexIndex = -1;
     private double _thickness;
     private Color _color;
     private List<Point> _vertices;
+    public int SelectedVertexIndex
+    {
+        get => _selectedVertexIndex;
+        set { _selectedVertexIndex = value; OnPropertyChanged(nameof(SelectedVertexIndex)); }
+    }
     public double Thickness
     {
         get => _thickness;
@@ -143,6 +151,47 @@ public class Polygon : INotifyPropertyChanged
     }
 }
 
+public class ProjectData
+{
+    public int BitmapWidth { get; set; }
+    public int BitmapHeight { get; set; }
+    public required List<LineDto> Lines { get; set; }
+    public required List<CircleDto> Circles { get; set; }
+    public required List<PolygonDto> Polygons { get; set; }
+}
+
+public class LineDto
+{
+    public double X1 { get; set; }
+    public double Y1 { get; set; }
+    public double X2 { get; set; }
+    public double Y2 { get; set; }
+    public double Thickness { get; set; }
+    public required string Color { get; set; }
+}
+
+public class CircleDto
+{
+    public double CenterX { get; set; }
+    public double CenterY { get; set; }
+    public double Radius { get; set; }
+    public double Thickness { get; set; }
+    public required string Color { get; set; }
+}
+
+public class PolygonDto
+{
+    public required List<VertexDto> Vertices { get; set; }
+    public double Thickness { get; set; }
+    public required string Color { get; set; }
+}
+
+public class VertexDto
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+}
+
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private const double SELECT_LINE_ENDPOINT_TOLERANCE = 8.0;
@@ -160,6 +209,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private double _currentThickness = 3.0;
 
+    private string? _currentFilePath = null;
+
     private Color _currentColor = Colors.Black;
     private Color _backgroundColor = Colors.White;
 
@@ -175,7 +226,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private System.Windows.Shapes.Line? _previewLine = null;
     private System.Windows.Shapes.Ellipse? _previewCircle = null;
 
+
     private WriteableBitmap _bitmap = new(400, 400, 96, 96, PixelFormats.Bgra32, null);
+
+    private List<Point> _verticesCopy = [];
 
     private List<Line> _lines = [];
     private List<Circle> _circles = [];
@@ -254,6 +308,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     RemoveCanvasHostChildrenTag("PolygonPreviewLine");
                     _currentPolygon = null;
+                    _previewLine = null;
                     _isDrawingPolygon = false;
                 }
                 break;
@@ -262,11 +317,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 if (_isDrawingPolygon && _currentPolygon != null)
                 {
                     _polygons.Add(_currentPolygon);
-                    DrawPolygon();
+                    DrawPolygon(_currentPolygon);
                     RemoveCanvasHostChildrenTag("PolygonPreviewLine");
                     _currentPolygon = null;
+                    _previewLine = null;
                     _isDrawingPolygon = false;
                 }
+                break;
+            case Key.Delete:
+                if (SelectedLine != null)
+                    _lines.Remove(SelectedLine); SelectedLine = null;
+                if (SelectedCircle != null)
+                    _circles.Remove(SelectedCircle); SelectedCircle = null;
+                if (SelectedPolygon != null)
+                    _polygons.Remove(SelectedPolygon); SelectedPolygon = null;
+                RedrawAll();
                 break;
         }
     }
@@ -276,6 +341,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void MenuNew_Click(object sender, RoutedEventArgs e)
     {
         NewFileWindow newFileWindow = new();
+        newFileWindow.Owner = this;
+        newFileWindow.WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
+        newFileWindow.Left = Left + 50;
+        newFileWindow.Top = Top + 50;
         if (newFileWindow.ShowDialog() == true)
         {
             _bitmap = new WriteableBitmap(newFileWindow.XWidth, newFileWindow.XHeight, 96, 96, PixelFormats.Bgra32, null);
@@ -287,18 +356,165 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             ClearBitmap();
         }
     }
+
     private void MenuOpenFile_Click(object sender, RoutedEventArgs e)
     {
+        OpenFileDialog openFileDialog = new()
+        {
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+            Title = "Open a file"
+        };
+        if (openFileDialog.ShowDialog() == true)
+        {
+            _currentFilePath = openFileDialog.FileName;
+            string json = File.ReadAllText(_currentFilePath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            ProjectData data = JsonSerializer.Deserialize<ProjectData>(json, options) ?? throw new InvalidOperationException("Failed to deserialize project data");
 
+            _lines.Clear();
+            _circles.Clear();
+            _polygons.Clear();
+
+            Color ConvertColor(string s)
+            {
+                var cc = TypeDescriptor.GetConverter(typeof(Color));
+                return (Color)cc.ConvertFromString(s)!;
+            }
+
+            foreach (var dto in data.Lines)
+            {
+                var line = new Line
+                {
+                    X1 = dto.X1,
+                    Y1 = dto.Y1,
+                    X2 = dto.X2,
+                    Y2 = dto.Y2,
+                    Thickness = dto.Thickness,
+                    Color = ConvertColor(dto.Color)
+                };
+                _lines.Add(line);
+            }
+
+            foreach (var dto in data.Circles)
+            {
+                var circle = new Circle
+                {
+                    Center = new Point(dto.CenterX, dto.CenterY),
+                    Radius = dto.Radius,
+                    Thickness = dto.Thickness,
+                    Color = ConvertColor(dto.Color)
+                };
+                _circles.Add(circle);
+            }
+
+            foreach (var dto in data.Polygons)
+            {
+                var polygon = new Polygon
+                {
+                    Thickness = dto.Thickness,
+                    Color = ConvertColor(dto.Color),
+                    Vertices = new List<Point>()
+                };
+                foreach (var v in dto.Vertices)
+                    polygon.Vertices.Add(new Point(v.X, v.Y));
+                _polygons.Add(polygon);
+            }
+
+            _bitmap = new WriteableBitmap(data.BitmapWidth, data.BitmapHeight, 96, 96, PixelFormats.Bgra32, null);
+            CanvasHost.Width = data.BitmapWidth;
+            CanvasHost.Height = data.BitmapHeight;
+            Canvas.Width = data.BitmapWidth;
+            Canvas.Height = data.BitmapHeight;
+            RedrawAll();
+        }
     }
+
     private void MenuSave_Click(object sender, RoutedEventArgs e)
     {
 
     }
+
     private void MenuSaveFile_Click(object sender, RoutedEventArgs e)
     {
+        SaveFileDialog saveFileDialog = new()
+        {
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+            Title = "Save a file"
+        };
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            _currentFilePath = saveFileDialog.FileName;
 
+            ProjectData data = new ProjectData
+            {
+                BitmapWidth = _bitmap.PixelWidth,
+                BitmapHeight = _bitmap.PixelHeight,
+                Lines = new List<LineDto>(),
+                Circles = new List<CircleDto>(),
+                Polygons = new List<PolygonDto>()
+            };
+
+            string ConvertColor(Color c)
+            {
+                return $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+            }
+
+            foreach (var line in _lines)
+            {
+                data.Lines.Add(new LineDto
+                {
+                    X1 = line.X1,
+                    Y1 = line.Y1,
+                    X2 = line.X2,
+                    Y2 = line.Y2,
+                    Thickness = line.Thickness,
+                    Color = ConvertColor(line.Color)
+                });
+            }
+
+            foreach (var circle in _circles)
+            {
+                data.Circles.Add(new CircleDto
+                {
+                    CenterX = circle.Center.X,
+                    CenterY = circle.Center.Y,
+                    Radius = circle.Radius,
+                    Thickness = circle.Thickness,
+                    Color = ConvertColor(circle.Color)
+                });
+            }
+
+            foreach (var polygon in _polygons)
+            {
+                var polygonDto = new PolygonDto
+                {
+                    Thickness = polygon.Thickness,
+                    Color = ConvertColor(polygon.Color),
+                    Vertices = new List<VertexDto>()
+                };
+                foreach (var vertex in polygon.Vertices)
+                {
+                    polygonDto.Vertices.Add(new VertexDto
+                    {
+                        X = vertex.X,
+                        Y = vertex.Y
+                    });
+                }
+                data.Polygons.Add(polygonDto);
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            string json = JsonSerializer.Serialize(data, options);
+            File.WriteAllText(_currentFilePath, json);
+        }
     }
+
     private void MenuClearImage_Click(object sender, RoutedEventArgs e)
     {
         ClearBitmap();
@@ -310,6 +526,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         DeselectAll();
         _currentPolygon = null;
     }
+
     private void MenuTool_Click(object sender, RoutedEventArgs e)
     {
         if (sender == SelectToolItem)
@@ -328,11 +545,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         CircleToolItem.IsChecked = _currentTool == ToolType.Circle;
         PolygonToolItem.IsChecked = _currentTool == ToolType.Polygon;
     }
+
     private void MenuAntialiasing_Click(object sender, RoutedEventArgs e)
     {
         IsAntialiasingOn = !IsAntialiasingOn;
         AntialiasingMenuItem.IsChecked = IsAntialiasingOn;
     }
+
     private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
     {
         CurrentThickness -= 2.0;
@@ -388,6 +607,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             RedrawAll();
             UpdateSelectedCircleMarkers();
         }
+        else if (_isDraggingMarker && SelectedPolygon != null && !_isDrawingPolygon)
+        {
+            Point p = e.GetPosition(Canvas);
+
+            if (_isDraggingStartPoint)
+            {
+                double dx = p.X - _startPoint.X;
+                double dy = p.Y - _startPoint.Y;
+
+                for (int i = 0; i < SelectedPolygon.Vertices.Count; i++)
+                    SelectedPolygon.Vertices[i] = new Point(_verticesCopy[i].X + dx, _verticesCopy[i].Y + dy);
+            }
+            else
+                SelectedPolygon.Vertices[SelectedPolygon.SelectedVertexIndex] = p;
+
+            RedrawAll();
+            UpdateSelectedPolygonMarkers();
+        }
         else if (_isDrawingCircle && _previewCircle != null)
         {
             Point p = e.GetPosition(Canvas);
@@ -436,9 +673,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
             foreach (var polygon in _polygons)
             {
-                foreach (var vertex in polygon.Vertices)
+                for (int i = 0; i < polygon.Vertices.Count; i++)
                 {
-                    if ((vertex - p).Length <= SELECT_LINE_ENDPOINT_TOLERANCE)
+                    var vertex = polygon.Vertices[i];
+                    if ((vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE)
+                    {
+                        Select(polygon);
+                        return;
+                    }
+                    if (DistancePointToLine(p, vertex, polygon.Vertices[(i + 1) % polygon.Vertices.Count]) <= SELECT_LINE_NEAR_TOLERANCE)
                     {
                         Select(polygon);
                         return;
@@ -500,12 +743,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             foreach (var vertex in _currentPolygon.Vertices)
                 if ((vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE)
                     vertexToAdd = vertex;
-            if (_currentPolygon.Vertices.Count != 0 && vertexToAdd == _currentPolygon.Vertices.First() )
+            if (_currentPolygon.Vertices.Count != 0 && vertexToAdd == _currentPolygon.Vertices.First())
             {
                 _polygons.Add(_currentPolygon);
-                DrawPolygon();
+                DrawPolygon(_currentPolygon);
                 RemoveCanvasHostChildrenTag("PolygonPreviewLine");
                 _currentPolygon = null;
+                _previewLine = null;
                 _isDrawingPolygon = false;
             }
             else
@@ -568,6 +812,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Point p = e.GetPosition(Canvas);
         SelectedLine = _lines.FirstOrDefault(line => DistancePointToLine(p, new Point(line.X1, line.Y1), new Point(line.X2, line.Y2)) <= SELECT_LINE_ENDPOINT_TOLERANCE);
         SelectedCircle = _circles.FirstOrDefault(circle => DistancePointToCircle(p, circle) <= SELECT_CIRCLE_NEAR_TOLERANCE);
+        SelectedPolygon = _polygons.FirstOrDefault(polygon =>
+                   polygon.Vertices.Any(vertex => (vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE) ||
+                   polygon.Vertices.Zip(polygon.Vertices.Skip(1).Append(polygon.Vertices.First()), (start, end) =>
+                   DistancePointToLine(p, start, end) <= SELECT_LINE_NEAR_TOLERANCE).Any());
         if (SelectedLine != null)
         {
             ContextMenu cm = new();
@@ -691,6 +939,72 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             cp.SelectedColorChanged += (_, __) =>
             {
                 SelectedCircle.Color = (Color)cp.SelectedColor;
+                RedrawAll();
+            };
+            miColorContainer.Children.Add(cp);
+            miColor.Header = miColorContainer;
+            miColor.StaysOpenOnClick = true;
+            cm.Items.Add(miColor);
+
+            cm.IsOpen = true;
+        }
+        else if (SelectedPolygon != null)
+        {
+            ContextMenu cm = new();
+
+            MenuItem miDel = new() { Header = "Delete Polygon" };
+            miDel.Click += (_, __) =>
+            {
+                _polygons.Remove(SelectedPolygon);
+                SelectedPolygon = null;
+                RedrawAll();
+            };
+            cm.Items.Add(miDel);
+
+            MenuItem miThick = new() { Header = "Thickness:" };
+            StackPanel miThickContainer = new() { Orientation = Orientation.Horizontal };
+            Button btl = new() { Content = "<<", Width = 25, VerticalAlignment = VerticalAlignment.Center };
+            btl.Click += (_, __) =>
+            {
+                SelectedPolygon.Thickness -= 2.0;
+                RedrawAll();
+            };
+            Button btr = new() { Content = ">>", Width = 25, VerticalAlignment = VerticalAlignment.Center };
+            btr.Click += (_, __) =>
+            {
+                SelectedPolygon.Thickness += 2.0;
+                RedrawAll();
+            };
+            TextBox tb = new() { Width = 25, Text = SelectedPolygon.Thickness.ToString() };
+            Thickness margin = tb.Margin;
+            margin.Left = 10;
+            margin.Right = 10;
+            tb.Margin = margin;
+            Binding miThickBind = new("Thickness") { Source = SelectedPolygon, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+            tb.SetBinding(TextBox.TextProperty, miThickBind);
+            tb.LostKeyboardFocus += (_, __) =>
+            {
+                if (double.TryParse(tb.Text, out double newThickness))
+                {
+                    SelectedPolygon.Thickness = newThickness;
+                    RedrawAll();
+                }
+            };
+            miThickContainer.Children.Add(btl);
+            miThickContainer.Children.Add(tb);
+            miThickContainer.Children.Add(btr);
+            miThick.Header = miThickContainer;
+            miThick.StaysOpenOnClick = true;
+            cm.Items.Add(miThick);
+
+            MenuItem miColor = new() { Header = "Change Color..." };
+            StackPanel miColorContainer = new();
+            ColorPicker cp = new() { Width = 50, SelectedColor = SelectedPolygon.Color };
+            Binding miColorBind = new("Color") { Source = SelectedPolygon, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+            cp.SetBinding(ColorPicker.SelectedColorProperty, miColorBind);
+            cp.SelectedColorChanged += (_, __) =>
+            {
+                SelectedPolygon.Color = (Color)cp.SelectedColor;
                 RedrawAll();
             };
             miColorContainer.Children.Add(cp);
@@ -903,25 +1217,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private unsafe void DrawPolygon()
+    private unsafe void DrawPolygon(Polygon polygon)
     {
-        if (_currentPolygon == null)
+        if (polygon == null)
             throw new ArgumentNullException("Current polygon was null, something went wrong");
 
-        for (int i = 0; i < _currentPolygon.Vertices.Count; i++)
+        for (int i = 0; i < polygon.Vertices.Count; i++)
         {
-            var vertex = _currentPolygon.Vertices[i];
+            var vertex = polygon.Vertices[i];
 
-            if (i == _currentPolygon.Vertices.Count - 1)
+            if (i == polygon.Vertices.Count - 1)
             {
                 DrawLine(new Line()
                 {
                     X1 = vertex.X,
                     Y1 = vertex.Y,
-                    X2 = _currentPolygon.Vertices[0].X,
-                    Y2 = _currentPolygon.Vertices[0].Y,
-                    Color = _currentPolygon.Color,
-                    Thickness = _currentPolygon.Thickness
+                    X2 = polygon.Vertices[0].X,
+                    Y2 = polygon.Vertices[0].Y,
+                    Color = polygon.Color,
+                    Thickness = polygon.Thickness
                 });
             }
             else
@@ -930,10 +1244,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     X1 = vertex.X,
                     Y1 = vertex.Y,
-                    X2 = _currentPolygon.Vertices[i + 1].X,
-                    Y2 = _currentPolygon.Vertices[i + 1].Y,
-                    Color = _currentPolygon.Color,
-                    Thickness = _currentPolygon.Thickness
+                    X2 = polygon.Vertices[i + 1].X,
+                    Y2 = polygon.Vertices[i + 1].Y,
+                    Color = polygon.Color,
+                    Thickness = polygon.Thickness
                 });
             }
         }
@@ -949,6 +1263,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         foreach (var circle in _circles)
         {
             DrawCircle(circle);
+        }
+        foreach (var polygon in _polygons)
+        {
+            DrawPolygon(polygon);
         }
     }
 
@@ -986,11 +1304,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedPolygon == null)
             return;
 
+        _verticesCopy = SelectedPolygon.Vertices.ToList();
+
+        double sumX = 0, sumY = 0;
+
         for (int i = 0; i < SelectedPolygon.Vertices.Count; i++)
         {
-            Rectangle marker = CreateMarker(SelectedPolygon.Vertices[i].X, SelectedPolygon.Vertices[i].Y, i == 0 ? Colors.DodgerBlue : Colors.White, true);
+            sumX += SelectedPolygon.Vertices[i].X;
+            sumY += SelectedPolygon.Vertices[i].Y;
+
+            Rectangle marker = CreateMarker(SelectedPolygon.Vertices[i].X, SelectedPolygon.Vertices[i].Y, i == 0 ? Colors.DodgerBlue : Colors.White, false);
             CanvasHost.Children.Add(marker);
         }
+
+        Rectangle centerMarker = CreateMarker(sumX / SelectedPolygon.Vertices.Count, sumY / SelectedPolygon.Vertices.Count, Colors.PaleVioletRed, true);
+        CanvasHost.Children.Add(centerMarker);
+
+        _startPoint = new Point(sumX / SelectedPolygon.Vertices.Count, sumY / SelectedPolygon.Vertices.Count);
     }
     private void StartMarker_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -1002,6 +1332,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void EndMarker_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (SelectedPolygon != null)
+        {
+            for (int i = 0; i < SelectedPolygon.Vertices.Count; i++)
+            {
+                var vertex = SelectedPolygon.Vertices[i];
+                if ((vertex - e.GetPosition(Canvas)).Length <= SELECT_POLYGON_VERTEX_TOLERANCE)
+                {
+                    SelectedPolygon.SelectedVertexIndex = i;
+                    break;
+                }
+            }
+        }
         _isDraggingMarker = true;
         _isDraggingStartPoint = false;
         Canvas.CaptureMouse();

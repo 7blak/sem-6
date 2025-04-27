@@ -11,7 +11,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="res\icon_mainwindow.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.7.25104.5739" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="res\icon_mainwindow.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>

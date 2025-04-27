@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:rasterization_2"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="Rasterization App" Height="900" Width="1600" MinHeight="300" MinWidth="300" Background="LightGray">
+        Title="Rasterization App" Height="900" Width="1600" MinHeight="300" MinWidth="300" Background="LightGray" Icon="res/icon_mainwindow.png">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -18,6 +20,36 @@ namespace rasterization_2
 {
     public partial class NewFileWindow : Window, INotifyPropertyChanged
     {
+        #region Hide Icon Sorcery
+        [DllImport("user32.dll")]
+        static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        const int GWL_EXSTYLE = -20;
+        const int WS_EX_DLGMODALFRAME = 0x0001;
+
+        [DllImport("user32.dll")]
+        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOMOVE = 0x0002;
+        const uint SWP_NOZORDER = 0x0004;
+        const uint SWP_FRAMECHANGED = 0x0020;
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            exStyle |= WS_EX_DLGMODALFRAME;
+            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+            SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+        #endregion
+
         private int _width;
         private int _height;
         private Color _color;
