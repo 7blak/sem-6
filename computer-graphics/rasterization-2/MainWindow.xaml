@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:rasterization_2"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="MainWindow" Height="900" Width="1600" MinHeight="300" MinWidth="300" Background="LightGray">
+        Title="Rasterization App" Height="900" Width="1600" MinHeight="300" MinWidth="300" Background="LightGray">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -18,23 +18,29 @@
                 <MenuItem Header="Open..." Click="MenuOpenFile_Click"/>
                 <MenuItem Header="Save" Click="MenuSave_Click" />
                 <MenuItem Header="Save As..." Click="MenuSaveFile_Click"/>
+                <Separator/>
+                <MenuItem Header="Clear image" Click="MenuClearImage_Click"/>
             </MenuItem>
             <MenuItem Header="Tools">
+                <MenuItem x:Name="SelectToolItem" Header="Select Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="LineToolItem" Header="Line Tool" Click="MenuTool_Click" IsCheckable="True" IsChecked="True"/>
+                <MenuItem x:Name="CircleToolItem" Header="Circle Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <Separator/>
                 <MenuItem StaysOpenOnClick="True">
                     <MenuItem.Header>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="-5,0,-5,0">
                             <Label>Line Thickness:</Label>
                             <Button Content="&lt;&lt;" Width="25" Click="Button_DecreaseThicknessValue" VerticalAlignment="Center"/>
-                            <TextBox Name="TextBoxThickness" Width="25" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding LineThickness, Mode=TwoWay}" Margin="10,0"/>
+                            <TextBox Name="TextBoxThickness" Width="25" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding CurrentThickness, Mode=TwoWay}" Margin="10,0"/>
                             <Button Content=">>" Width="25" Click="Button_IncreaseThicknessValue" VerticalAlignment="Center"/>
                         </StackPanel>
                     </MenuItem.Header>
                 </MenuItem>
                 <MenuItem StaysOpenOnClick="True">
                     <MenuItem.Header>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="-5,0,-5,0">
                             <Label>Select Line Color:</Label>
-                            <xctk:ColorPicker Name="colorPicker" Width="50" SelectedColor="{Binding LineColor}"/>
+                            <xctk:ColorPicker Name="colorPicker" Width="50" SelectedColor="{Binding CurrentColor}"/>
                         </StackPanel>
                     </MenuItem.Header>
                 </MenuItem>
