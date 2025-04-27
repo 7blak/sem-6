@@ -522,6 +522,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _circles.Clear();
         _polygons.Clear();
         RemoveCanvasHostChildrenTag("Marker");
+        RemoveCanvasHostChildrenTag("PreviewLine");
+        RemoveCanvasHostChildrenTag("PreviewCircle");
         RemoveCanvasHostChildrenTag("PolygonPreviewLine");
         DeselectAll();
         _currentPolygon = null;
@@ -702,6 +704,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Y2 = _startPoint.Y,
                 Stroke = new SolidColorBrush(_currentColor),
                 StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
+                Tag = "PreviewLine"
             };
             CanvasHost.Children.Add(_previewLine);
         }
@@ -716,6 +719,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Height = 0,
                 Stroke = new SolidColorBrush(_currentColor),
                 StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
+                Tag = "PreviewCircle"
             };
             CanvasHost.Children.Add(_previewCircle);
         }
@@ -1083,26 +1087,85 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         int d, dE, dNE;
 
-        if (IsAntialiasingOn && dx >= dy)
+        if (IsAntialiasingOn)
         {
-            double slope = (double)(y2 - y1) / (x2 - x1);
-
-            for (int x = x1; x <= x2; ++x)
+            bool steep = Math.Abs(y2 - y1) > Math.Abs(x2 - x1);
+            if (steep)
             {
-                double y = y1 + slope * (x - x1);
-                int yFloor = (int)Math.Floor(y);
-                double fraction = y - yFloor;
-
-                Color c1 = BlendColors(_currentColor, _backgroundColor, 1 - fraction);
-                Color c2 = BlendColors(_currentColor, _backgroundColor, fraction);
-
-                DrawPixel(x, yFloor, buffer, stride, c1);
-                DrawPixel(x, yFloor + 1, buffer, stride, c2);
+                (x1, y1) = (y1, x1);
+                (x2, y2) = (y2, x2);
             }
-        }
-        else if (IsAntialiasingOn)
-        {
+            if (x1 > x2)
+            {
+                (x1, x2) = (x2, x1);
+                (y1, y2) = (y2, y1);
+            }
 
+            dx = x2 - x1;
+            dy = y2 - y1;
+
+            double gradient = dx == 0 ? 1 : (double)dy / dx;
+
+            double xend = x1;
+            double yend = y1 + gradient * (xend - x1);
+            double xgap = rfpart(x1 + 0.5);
+            double xpxl1 = xend;
+            double ypxl1 = ipart(yend);
+
+            Color c1 = BlendColors(line.Color, _backgroundColor, rfpart(yend) * xgap);
+            Color c2 = BlendColors(line.Color, _backgroundColor, fpart(yend) * xgap);
+
+            if (steep)
+            {
+                DrawPixel((int)ypxl1, (int)xpxl1, buffer, stride, c1);
+                DrawPixel((int)ypxl1 + 1, (int)xpxl1, buffer, stride, c2);
+            }
+            else
+            {
+                DrawPixel((int)xpxl1, (int)ypxl1, buffer, stride, c1);
+                DrawPixel((int)xpxl1, (int)ypxl1 + 1, buffer, stride, c2);
+            }
+
+            double intery = yend + gradient;
+
+            xend = x2;
+            yend = y2 + gradient * (xend - x2);
+            xgap = fpart(x2 + 0.5);
+            double xpxl2 = xend;
+            double ypxl2 = ipart(yend);
+
+            c1 = BlendColors(line.Color, _backgroundColor, rfpart(yend) * xgap);
+            c2 = BlendColors(line.Color, _backgroundColor, fpart(yend) * xgap);
+
+            if (steep)
+            {
+                DrawPixel((int)ypxl2, (int)xpxl2, buffer, stride, c1);
+                DrawPixel((int)ypxl2 + 1, (int)xpxl2, buffer, stride, c2);
+            }
+            else
+            {
+                DrawPixel((int)xpxl2, (int)ypxl2, buffer, stride, c1);
+                DrawPixel((int)xpxl2, (int)ypxl2 + 1, buffer, stride, c2);
+            }
+
+            if (steep)
+            {
+                for (int x = (int)xpxl1 + 1; x < xpxl2 - 1; x++)
+                {
+                    DrawPixel((int)ipart(intery), x, buffer, stride, BlendColors(line.Color, _backgroundColor, rfpart(intery)));
+                    DrawPixel((int)ipart(intery) + 1, x, buffer, stride, BlendColors(line.Color, _backgroundColor, fpart(intery)));
+                    intery += gradient;
+                }
+            }
+            else
+            {
+                for (int x = (int)xpxl1 + 1; x < xpxl2 - 1; x++)
+                {
+                    DrawPixel(x, (int)ipart(intery), buffer, stride, BlendColors(line.Color, _backgroundColor, rfpart(intery)));
+                    DrawPixel(x, (int)ipart(intery) + 1, buffer, stride, BlendColors(line.Color, _backgroundColor, fpart(intery)));
+                    intery += gradient;
+                }
+            }
         }
         else if (dx >= dy)
         {
@@ -1166,45 +1229,64 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         int xc = (int)Math.Round(circle.Center.X);
         int yc = (int)Math.Round(circle.Center.Y);
+        int radius = (int)Math.Round(circle.Radius);
+
         int halfT = (int)(circle.Thickness / 2);
 
         int d = (int)(1 - circle.Radius) + halfT;
         int dE = 3;
         int dSE = (int)(5 - 2 * circle.Radius) + halfT;
 
-        int x = 0;
-        int y = (int)circle.Radius + halfT;
+        int x = IsAntialiasingOn ? radius : 0;
+        int y = IsAntialiasingOn ? 0 : (int)circle.Radius + halfT;
 
         _bitmap.Lock();
         byte* buffer = (byte*)_bitmap.BackBuffer.ToPointer();
         int stride = _bitmap.BackBufferStride;
 
-        Draw8Octants();
-
-        while (y > x)
+        if (IsAntialiasingOn)
         {
-            if (d < 0)
+            Draw8Octants(x, y, circle.Color);
+
+            while (x > y)
             {
-                d += dE;
-                dE += 2;
-                dSE += 2;
+                y++;
+                double f = Math.Sqrt(radius * radius - y * y);
+                int xi = (int)Math.Ceiling(f);
+
+                Draw8Octants(xi, y, BlendColors(circle.Color, _backgroundColor, 1 - xi + f));
+                Draw8Octants(xi - 1, y, BlendColors(circle.Color, _backgroundColor, xi - f));
             }
-            else
+        }
+        else
+        {
+            DrawThick8Octants();
+
+            while (y > x)
             {
-                d += dSE;
-                dE += 2;
-                dSE += 4;
-                y--;
+                if (d < 0)
+                {
+                    d += dE;
+                    dE += 2;
+                    dSE += 2;
+                }
+                else
+                {
+                    d += dSE;
+                    dE += 2;
+                    dSE += 4;
+                    y--;
+                }
+                x++;
+                DrawThick8Octants();
             }
-            x++;
-            Draw8Octants();
         }
 
         _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
         _bitmap.Unlock();
         Canvas.Source = _bitmap;
 
-        void Draw8Octants()
+        void DrawThick8Octants()
         {
             DrawThickPixel(xc + y, yc - x, buffer, stride, circle.Color, halfT, false); // octant 1
             DrawThickPixel(xc + x, yc - y, buffer, stride, circle.Color, halfT, true); // octant 2
@@ -1214,6 +1296,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             DrawThickPixel(xc - x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 6
             DrawThickPixel(xc + x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 7
             DrawThickPixel(xc + y, yc + x, buffer, stride, circle.Color, halfT, false); // octant 8
+        }
+
+        void Draw8Octants(int x, int y, Color color)
+        {
+            DrawPixel(xc + y, yc - x, buffer, stride, color); // octant 1
+            DrawPixel(xc + x, yc - y, buffer, stride, color); // octant 2
+            DrawPixel(xc - x, yc - y, buffer, stride, color); // octant 3
+            DrawPixel(xc - y, yc - x, buffer, stride, color); // octant 4
+            DrawPixel(xc - y, yc + x, buffer, stride, color); // octant 5
+            DrawPixel(xc - x, yc + y, buffer, stride, color); // octant 6
+            DrawPixel(xc + x, yc + y, buffer, stride, color); // octant 7
+            DrawPixel(xc + y, yc + x, buffer, stride, color); // octant 8
         }
     }
 
@@ -1429,6 +1523,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private unsafe void DrawPixel(int x, int y, byte* buffer, int stride, Color color)
     {
+        if (x < 0 || x >= _bitmap.PixelWidth || y < 0 || y >= _bitmap.PixelHeight)
+            return;
+
         int idx = (y * stride) + (x * 4);
         buffer[idx] = color.B;
         buffer[idx + 1] = color.G;
@@ -1466,6 +1563,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         byte a = (byte)(color1.A * ratio + color2.A * (1 - ratio));
 
         return Color.FromArgb(a, r, g, b);
+    }
+
+    private static double ipart(double x)
+    {
+        return Math.Floor(x);
+    }
+
+    private static double round(double x)
+    {
+        return ipart(x + 0.5);
+    }
+
+    private static double fpart(double x)
+    {
+        return x - ipart(x);
+    }
+
+    private static double rfpart(double x)
+    {
+        return 1 - fpart(x);
     }
     #endregion
 }
