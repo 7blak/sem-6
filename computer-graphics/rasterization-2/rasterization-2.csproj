@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>rasterization_2</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="res\icon_mainwindow.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.7.25104.5739" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="res\icon_mainwindow.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>

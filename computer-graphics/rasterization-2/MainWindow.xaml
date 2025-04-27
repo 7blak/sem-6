@@ -1,0 +1,61 @@
+﻿<Window x:Class="rasterization_2.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:rasterization_2"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        mc:Ignorable="d"
+        Title="Rasterization App" Height="900" Width="1600" MinHeight="300" MinWidth="300" Background="LightGray" Icon="res/icon_mainwindow.png">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Menu>
+            <MenuItem Header="File">
+                <MenuItem Header="New..." Click="MenuNew_Click" />
+                <MenuItem Header="Open..." Click="MenuOpenFile_Click"/>
+                <MenuItem Header="Save" Click="MenuSave_Click" />
+                <MenuItem Header="Save As..." Click="MenuSaveFile_Click"/>
+                <Separator/>
+                <MenuItem Header="Clear image" Click="MenuClearImage_Click"/>
+            </MenuItem>
+            <MenuItem Header="Tools">
+                <MenuItem x:Name="SelectToolItem" Header="Select Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="LineToolItem" Header="Line Tool" Click="MenuTool_Click" IsCheckable="True" IsChecked="True"/>
+                <MenuItem x:Name="CircleToolItem" Header="Circle Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="PolygonToolItem" Header="Polygon Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <Separator/>
+                <MenuItem StaysOpenOnClick="True">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="-5,0,-5,0">
+                            <Label>Line Thickness:</Label>
+                            <Button Content="&lt;&lt;" Width="25" Click="Button_DecreaseThicknessValue" VerticalAlignment="Center"/>
+                            <TextBox Name="TextBoxThickness" Width="25" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding CurrentThickness, Mode=TwoWay}" Margin="10,0"/>
+                            <Button Content=">>" Width="25" Click="Button_IncreaseThicknessValue" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem StaysOpenOnClick="True">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="-5,0,-5,0">
+                            <Label>Select Line Color:</Label>
+                            <xctk:ColorPicker Name="colorPicker" Width="50" SelectedColor="{Binding CurrentColor}"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
+                <MenuItem x:Name="AntialiasingMenuItem" Header="Antialiasing" Click="MenuAntialiasing_Click" IsCheckable="True" IsChecked="False"/>
+            </MenuItem>
+        </Menu>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Canvas x:Name="CanvasHost" Width="400" Height="400"
+                    MouseMove="Canvas_MouseMove"
+                    MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
+                    MouseLeftButtonUp="Canvas_MouseLeftButtonUp"
+                    MouseRightButtonDown="Canvas_MouseRightButtonDown">
+                <Image x:Name="Canvas" Height="400" Width="400" />
+            </Canvas>
+        </ScrollViewer>
+    </Grid>
+</Window>
