@@ -20,7 +20,8 @@ public enum ToolType
 {
     Select,
     Line,
-    Circle
+    Circle,
+    Polygon
 }
 
 public class Line : INotifyPropertyChanged
@@ -109,20 +110,53 @@ public class Circle : INotifyPropertyChanged
     }
 }
 
+public class Polygon : INotifyPropertyChanged
+{
+    private double _thickness;
+    private Color _color;
+    private List<Point> _vertices;
+    public double Thickness
+    {
+        get => _thickness;
+        set { _thickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(Thickness)); }
+    }
+    public Color Color
+    {
+        get => _color;
+        set { _color = value; OnPropertyChanged(nameof(Color)); }
+    }
+    public List<Point> Vertices
+    {
+        get => _vertices;
+        set { _vertices = value; OnPropertyChanged(nameof(Vertices)); }
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    public Polygon()
+    {
+        Color = Colors.Black;
+        Thickness = 1.0;
+        _vertices = [];
+    }
+}
+
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
-    public const int CANVAS_WIDTH = 1200;
-    public const int CANVAS_HEIGHT = 800;
-
     private const double SELECT_LINE_ENDPOINT_TOLERANCE = 8.0;
     private const double SELECT_LINE_NEAR_TOLERANCE = 5.0;
     private const double SELECT_LINE_SQUARE_SIZE = 6.0;
     private const double SELECT_CIRCLE_NEAR_TOLERANCE = 5.0;
+    private const double SELECT_POLYGON_VERTEX_TOLERANCE = 4.5;
 
-    private bool _isDrawing = false;
+    private bool _isDrawingLine = false;
+    private bool _isDrawingCircle = false;
+    private bool _isDrawingPolygon = false;
     private bool _isDraggingMarker = false;
     private bool _isDraggingStartPoint = false;
-    private bool _isDrawingCircle = false;
+    private bool _isAntialiasingOn = false;
 
     private double _currentThickness = 3.0;
 
@@ -135,6 +169,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private Line? _selectedLine = null;
     private Circle? _selectedCircle = null;
+    private Polygon? _selectedPolygon = null;
+    private Polygon? _currentPolygon = null;
+
     private System.Windows.Shapes.Line? _previewLine = null;
     private System.Windows.Shapes.Ellipse? _previewCircle = null;
 
@@ -142,16 +179,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private List<Line> _lines = [];
     private List<Circle> _circles = [];
+    private List<Polygon> _polygons = [];
 
+    public bool IsAntialiasingOn { get { return _isAntialiasingOn; } set { if (_isAntialiasingOn != value) { _isAntialiasingOn = value; OnPropertyChanged(nameof(IsAntialiasingOn)); } } }
     public double CurrentThickness { get { return _currentThickness; } set { if (_currentThickness != value) { _currentThickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(CurrentThickness)); } } }
 
     public Color CurrentColor { get { return _currentColor; } set { if (_currentColor != value) { _currentColor = value; OnPropertyChanged(nameof(CurrentColor)); } } }
 
     public Line? SelectedLine { get { return _selectedLine; } set { if (_selectedLine != value) { _selectedLine = value; OnPropertyChanged(nameof(SelectedLine)); } } }
     public Circle? SelectedCircle { get { return _selectedCircle; } set { if (_selectedCircle != value) { _selectedCircle = value; OnPropertyChanged(nameof(SelectedCircle)); } } }
+    public Polygon? SelectedPolygon { get { return _selectedPolygon; } set { if (_selectedPolygon != value) { _selectedPolygon = value; OnPropertyChanged(nameof(SelectedPolygon)); } } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public MainWindow()
+    {
+        InitializeComponent();
+        DataContext = this;
+        PropertyChanged += MainWindow_PropertyChanged;
+        KeyDown += MainWindow_KeyDown;
+        ClearBitmap();
+    }
+
+    #region MainWindow Events
     protected void OnPropertyChanged(string propertyName)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -167,15 +217,60 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             UpdateSelectedCircleMarkers();
         }
+        else if (e.PropertyName == nameof(SelectedPolygon))
+        {
+            UpdateSelectedPolygonMarkers();
+        }
+        else if (e.PropertyName == nameof(IsAntialiasingOn))
+        {
+            RedrawAll();
+        }
     }
 
-    public MainWindow()
+    private void MainWindow_KeyDown(object sender, KeyEventArgs e)
     {
-        InitializeComponent();
-        DataContext = this;
-        PropertyChanged += MainWindow_PropertyChanged;
-        ClearBitmap();
+        switch (e.Key)
+        {
+            case Key.Escape:
+                DeselectAll();
+                if (_isDrawingLine)
+                {
+                    CanvasHost.Children.Remove(_previewLine);
+                    _previewLine = null;
+                    _isDrawingLine = false;
+                }
+                else if (_isDrawingCircle)
+                {
+                    CanvasHost.Children.Remove(_previewCircle);
+                    _previewCircle = null;
+                    _isDrawingCircle = false;
+                }
+                else if (_isDraggingMarker)
+                {
+                    _isDraggingMarker = false;
+                    Canvas.ReleaseMouseCapture();
+                }
+                else if (_isDrawingPolygon)
+                {
+                    RemoveCanvasHostChildrenTag("PolygonPreviewLine");
+                    _currentPolygon = null;
+                    _isDrawingPolygon = false;
+                }
+                break;
+            case Key.Enter:
+                DeselectAll();
+                if (_isDrawingPolygon && _currentPolygon != null)
+                {
+                    _polygons.Add(_currentPolygon);
+                    DrawPolygon();
+                    RemoveCanvasHostChildrenTag("PolygonPreviewLine");
+                    _currentPolygon = null;
+                    _isDrawingPolygon = false;
+                }
+                break;
+        }
     }
+    #endregion
 
     #region Menu Item Handlers
     private void MenuNew_Click(object sender, RoutedEventArgs e)
@@ -209,7 +304,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ClearBitmap();
         _lines.Clear();
         _circles.Clear();
+        _polygons.Clear();
         RemoveCanvasHostChildrenTag("Marker");
+        RemoveCanvasHostChildrenTag("PolygonPreviewLine");
+        DeselectAll();
+        _currentPolygon = null;
     }
     private void MenuTool_Click(object sender, RoutedEventArgs e)
     {
@@ -219,12 +318,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _currentTool = ToolType.Line;
         else if (sender == CircleToolItem)
             _currentTool = ToolType.Circle;
+        else if (sender == PolygonToolItem)
+            _currentTool = ToolType.Polygon;
         else
             throw new ArgumentException("Unknown tool type");
 
         SelectToolItem.IsChecked = _currentTool == ToolType.Select;
         LineToolItem.IsChecked = _currentTool == ToolType.Line;
         CircleToolItem.IsChecked = _currentTool == ToolType.Circle;
+        PolygonToolItem.IsChecked = _currentTool == ToolType.Polygon;
+    }
+    private void MenuAntialiasing_Click(object sender, RoutedEventArgs e)
+    {
+        IsAntialiasingOn = !IsAntialiasingOn;
+        AntialiasingMenuItem.IsChecked = IsAntialiasingOn;
     }
     private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
     {
@@ -240,7 +347,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     #region Canvas Mouse Interactions
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
-        if (_isDrawing && _previewLine != null)
+        if (_previewLine != null)
         {
             Point p = e.GetPosition(Canvas);
 
@@ -305,17 +412,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Point endPoint = new(line.X2, line.Y2);
                 if ((startPoint - p).Length <= SELECT_LINE_ENDPOINT_TOLERANCE)
                 {
-                    SelectLine(line);
+                    Select(line);
                     return;
                 }
                 if ((endPoint - p).Length <= SELECT_LINE_ENDPOINT_TOLERANCE)
                 {
-                    SelectLine(line);
+                    Select(line);
                     return;
                 }
                 if (DistancePointToLine(p, startPoint, endPoint) <= SELECT_LINE_NEAR_TOLERANCE)
                 {
-                    SelectLine(line);
+                    Select(line);
                     return;
                 }
             }
@@ -323,17 +430,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 if (Math.Abs((circle.Center - p).Length - circle.Radius) <= SELECT_CIRCLE_NEAR_TOLERANCE)
                 {
-                    SelectCircle(circle);
+                    Select(circle);
                     return;
+                }
+            }
+            foreach (var polygon in _polygons)
+            {
+                foreach (var vertex in polygon.Vertices)
+                {
+                    if ((vertex - p).Length <= SELECT_LINE_ENDPOINT_TOLERANCE)
+                    {
+                        Select(polygon);
+                        return;
+                    }
                 }
             }
         }
         else if (_currentTool == ToolType.Line)
         {
-            _isDrawing = true;
+            DeselectAll();
+            _isDrawingLine = true;
             _startPoint = p;
-            SelectedLine = null;
-            SelectedCircle = null;
             _previewLine = new System.Windows.Shapes.Line()
             {
                 X1 = _startPoint.X,
@@ -341,24 +458,62 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 X2 = _startPoint.X,
                 Y2 = _startPoint.Y,
                 Stroke = new SolidColorBrush(_currentColor),
-                StrokeThickness = _currentThickness,
+                StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
             };
             CanvasHost.Children.Add(_previewLine);
         }
         else if (_currentTool == ToolType.Circle)
         {
+            DeselectAll();
             _isDrawingCircle = true;
             _startPoint = p;
-            SelectedLine = null;
-            SelectedCircle = null;
             _previewCircle = new System.Windows.Shapes.Ellipse()
             {
                 Width = 0,
                 Height = 0,
                 Stroke = new SolidColorBrush(_currentColor),
-                StrokeThickness = _currentThickness,
+                StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
             };
             CanvasHost.Children.Add(_previewCircle);
+        }
+        else if (_currentTool == ToolType.Polygon)
+        {
+            DeselectAll();
+            _isDrawingPolygon = true;
+            System.Windows.Shapes.Line polygonPreviewLine = new()
+            {
+                X1 = p.X,
+                Y1 = p.Y,
+                X2 = p.X,
+                Y2 = p.Y,
+                Stroke = new SolidColorBrush(_currentColor),
+                StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
+                Tag = "PolygonPreviewLine"
+            };
+            _currentPolygon ??= new Polygon()
+            {
+                Color = _currentColor,
+                Thickness = _currentThickness
+            };
+            _previewLine = polygonPreviewLine;
+            Point vertexToAdd = p;
+            foreach (var vertex in _currentPolygon.Vertices)
+                if ((vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE)
+                    vertexToAdd = vertex;
+            if (_currentPolygon.Vertices.Count != 0 && vertexToAdd == _currentPolygon.Vertices.First() )
+            {
+                _polygons.Add(_currentPolygon);
+                DrawPolygon();
+                RemoveCanvasHostChildrenTag("PolygonPreviewLine");
+                _currentPolygon = null;
+                _isDrawingPolygon = false;
+            }
+            else
+            {
+                _currentPolygon.Vertices.Add(vertexToAdd);
+                Select(_currentPolygon);
+                CanvasHost.Children.Add(polygonPreviewLine);
+            }
         }
     }
 
@@ -366,7 +521,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         Point p = e.GetPosition(Canvas);
 
-        if (_isDrawing)
+        if (_isDrawingLine)
         {
             Line newLine = new()
             {
@@ -380,12 +535,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _lines.Add(newLine);
 
             DrawLine(newLine);
-        }
-        else if (_isDraggingMarker)
-        {
-            _isDraggingMarker = false;
-            Canvas.ReleaseMouseCapture();
-            e.Handled = true;
+            CanvasHost.Children.Remove(_previewLine);
+            _previewLine = null;
+            _isDrawingLine = false;
         }
         else if (_isDrawingCircle)
         {
@@ -399,6 +551,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _circles.Add(newCircle);
 
             DrawCircle(newCircle);
+            CanvasHost.Children.Remove(_previewCircle);
+            _previewCircle = null;
+            _isDrawingCircle = false;
+        }
+        else if (_isDraggingMarker)
+        {
+            _isDraggingMarker = false;
+            Canvas.ReleaseMouseCapture();
+            e.Handled = true;
         }
     }
 
@@ -543,15 +704,49 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     #endregion
 
     #region Bitmap Interactions & Drawing
-    private void SelectLine(Line line)
+    private void Select<T>(T obj)
     {
-        SelectedLine = line;
+        switch (obj)
+        {
+            case Line line:
+                SelectedLine = line;
+                break;
+            case Circle circle:
+                SelectedCircle = circle;
+                break;
+            case Polygon polygon:
+                SelectedPolygon = polygon;
+                break;
+            default:
+                throw new ArgumentException("Unknown object type");
+        }
     }
 
-    private void SelectCircle(Circle circle)
+    private void Deselect<T>(T obj)
     {
-        SelectedCircle = circle;
+        switch (obj)
+        {
+            case Line:
+                SelectedLine = null;
+                break;
+            case Circle:
+                SelectedCircle = null;
+                break;
+            case Polygon:
+                SelectedPolygon = null;
+                break;
+            default:
+                throw new ArgumentException("Unknown object type");
+        }
     }
+
+    private void DeselectAll()
+    {
+        SelectedLine = null;
+        SelectedCircle = null;
+        SelectedPolygon = null;
+    }
+
     private unsafe void DrawLine(Line line)
     {
         _bitmap.Lock();
@@ -574,7 +769,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         int d, dE, dNE;
 
-        if (dx >= dy)
+        if (IsAntialiasingOn && dx >= dy)
+        {
+            double slope = (double)(y2 - y1) / (x2 - x1);
+
+            for (int x = x1; x <= x2; ++x)
+            {
+                double y = y1 + slope * (x - x1);
+                int yFloor = (int)Math.Floor(y);
+                double fraction = y - yFloor;
+
+                Color c1 = BlendColors(_currentColor, _backgroundColor, 1 - fraction);
+                Color c2 = BlendColors(_currentColor, _backgroundColor, fraction);
+
+                DrawPixel(x, yFloor, buffer, stride, c1);
+                DrawPixel(x, yFloor + 1, buffer, stride, c2);
+            }
+        }
+        else if (IsAntialiasingOn)
+        {
+
+        }
+        else if (dx >= dy)
         {
             d = 2 * dy - dx;
             dE = 2 * dy;
@@ -582,8 +798,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             for (int i = 0; i <= dx / 2; i++)
             {
-                DrawThickPixel(x1, y1, halfThickness, buffer, stride, line.Color);
-                DrawThickPixel(x2, y2, halfThickness, buffer, stride, line.Color);
+                DrawThickPixel(x1, y1, buffer, stride, line.Color, halfThickness, true);
+                DrawThickPixel(x2, y2, buffer, stride, line.Color, halfThickness, true);
 
                 if (d <= 0)
                 {
@@ -608,8 +824,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             for (int i = 0; i <= dy / 2; i++)
             {
-                DrawThickPixel(x1, y1, halfThickness, buffer, stride, line.Color);
-                DrawThickPixel(x2, y2, halfThickness, buffer, stride, line.Color);
+                DrawThickPixel(x1, y1, buffer, stride, line.Color, halfThickness, false);
+                DrawThickPixel(x2, y2, buffer, stride, line.Color, halfThickness, false);
 
                 if (d <= 0)
                 {
@@ -629,9 +845,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
         _bitmap.Unlock();
-        CanvasHost.Children.Remove(_previewLine);
         Canvas.Source = _bitmap;
-        _isDrawing = false;
     }
 
     private unsafe void DrawCircle(Circle circle)
@@ -674,20 +888,54 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
         _bitmap.Unlock();
-        CanvasHost.Children.Remove(_previewCircle);
         Canvas.Source = _bitmap;
-        _isDrawingCircle = false;
 
         void Draw8Octants()
         {
-            DrawThickPixel(xc + x, yc + y, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc - x, yc + y, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc + x, yc - y, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc - x, yc - y, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc + y, yc + x, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc - y, yc + x, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc + y, yc - x, halfT, buffer, stride, circle.Color);
-            DrawThickPixel(xc - y, yc - x, halfT, buffer, stride, circle.Color);
+            DrawThickPixel(xc + y, yc - x, buffer, stride, circle.Color, halfT, false); // octant 1
+            DrawThickPixel(xc + x, yc - y, buffer, stride, circle.Color, halfT, true); // octant 2
+            DrawThickPixel(xc - x, yc - y, buffer, stride, circle.Color, halfT, true); // octant 3
+            DrawThickPixel(xc - y, yc - x, buffer, stride, circle.Color, halfT, false); // octant 4
+            DrawThickPixel(xc - y, yc + x, buffer, stride, circle.Color, halfT, false); // octant 5
+            DrawThickPixel(xc - x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 6
+            DrawThickPixel(xc + x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 7
+            DrawThickPixel(xc + y, yc + x, buffer, stride, circle.Color, halfT, false); // octant 8
+        }
+    }
+
+    private unsafe void DrawPolygon()
+    {
+        if (_currentPolygon == null)
+            throw new ArgumentNullException("Current polygon was null, something went wrong");
+
+        for (int i = 0; i < _currentPolygon.Vertices.Count; i++)
+        {
+            var vertex = _currentPolygon.Vertices[i];
+
+            if (i == _currentPolygon.Vertices.Count - 1)
+            {
+                DrawLine(new Line()
+                {
+                    X1 = vertex.X,
+                    Y1 = vertex.Y,
+                    X2 = _currentPolygon.Vertices[0].X,
+                    Y2 = _currentPolygon.Vertices[0].Y,
+                    Color = _currentPolygon.Color,
+                    Thickness = _currentPolygon.Thickness
+                });
+            }
+            else
+            {
+                DrawLine(new Line()
+                {
+                    X1 = vertex.X,
+                    Y1 = vertex.Y,
+                    X2 = _currentPolygon.Vertices[i + 1].X,
+                    Y2 = _currentPolygon.Vertices[i + 1].Y,
+                    Color = _currentPolygon.Color,
+                    Thickness = _currentPolygon.Thickness
+                });
+            }
         }
     }
 
@@ -711,8 +959,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedLine == null)
             return;
 
-        Rectangle startMarker = CreateMarker(SelectedLine.X1, SelectedLine.Y1, true);
-        Rectangle endMarker = CreateMarker(SelectedLine.X2, SelectedLine.Y2, false);
+        Rectangle startMarker = CreateMarker(SelectedLine.X1, SelectedLine.Y1, Colors.White, true);
+        Rectangle endMarker = CreateMarker(SelectedLine.X2, SelectedLine.Y2, Colors.White, false);
 
         CanvasHost.Children.Add(startMarker);
         CanvasHost.Children.Add(endMarker);
@@ -725,11 +973,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedCircle == null)
             return;
 
-        Rectangle centerMarker = CreateMarker(SelectedCircle.Center.X, SelectedCircle.Center.Y, true);
-        Rectangle circumferenceMarker = CreateMarker(SelectedCircle.Center.X + SelectedCircle.Radius, SelectedCircle.Center.Y, false);
+        Rectangle centerMarker = CreateMarker(SelectedCircle.Center.X, SelectedCircle.Center.Y, Colors.White, true);
+        Rectangle circumferenceMarker = CreateMarker(SelectedCircle.Center.X + SelectedCircle.Radius, SelectedCircle.Center.Y, Colors.White, false);
 
         CanvasHost.Children.Add(centerMarker);
         CanvasHost.Children.Add(circumferenceMarker);
+    }
+
+    private void UpdateSelectedPolygonMarkers()
+    {
+        RemoveCanvasHostChildrenTag("Marker");
+        if (SelectedPolygon == null)
+            return;
+
+        for (int i = 0; i < SelectedPolygon.Vertices.Count; i++)
+        {
+            Rectangle marker = CreateMarker(SelectedPolygon.Vertices[i].X, SelectedPolygon.Vertices[i].Y, i == 0 ? Colors.DodgerBlue : Colors.White, true);
+            CanvasHost.Children.Add(marker);
+        }
     }
     private void StartMarker_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -796,34 +1057,50 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private unsafe void DrawThickPixel(int px, int py, int halfThickness, byte* buffer, int stride, Color color)
+    private unsafe void DrawThickPixel(int px, int py, byte* buffer, int stride, Color color, int halfThickness, bool isHoriztional)
     {
-        for (int tx = -halfThickness; tx <= halfThickness; tx++)
+        if (isHoriztional)
         {
             for (int ty = -halfThickness; ty <= halfThickness; ty++)
             {
-                int fx = px + tx;
                 int fy = py + ty;
 
-                if (fx < 0 || fx >= _bitmap.PixelWidth || fy < 0 || fy >= _bitmap.PixelHeight)
+                if (px < 0 || px >= _bitmap.PixelWidth || fy < 0 || fy >= _bitmap.PixelHeight)
                     continue;
 
-                int idx = (fy * stride) + (fx * 4);
-                buffer[idx] = color.B;
-                buffer[idx + 1] = color.G;
-                buffer[idx + 2] = color.R;
-                buffer[idx + 3] = color.A;
+                DrawPixel(px, fy, buffer, stride, color);
+            }
+        }
+        else
+        {
+            for (int tx = -halfThickness; tx <= halfThickness; tx++)
+            {
+                int fx = px + tx;
+
+                if (fx < 0 || fx >= _bitmap.PixelWidth || py < 0 || py >= _bitmap.PixelHeight)
+                    continue;
+
+                DrawPixel(fx, py, buffer, stride, color);
             }
         }
     }
 
-    Rectangle CreateMarker(double x, double y, bool isStartMarker)
+    private unsafe void DrawPixel(int x, int y, byte* buffer, int stride, Color color)
+    {
+        int idx = (y * stride) + (x * 4);
+        buffer[idx] = color.B;
+        buffer[idx + 1] = color.G;
+        buffer[idx + 2] = color.R;
+        buffer[idx + 3] = color.A;
+    }
+
+    Rectangle CreateMarker(double x, double y, Color fillColor, bool isStartMarker)
     {
         Rectangle marker = new()
         {
             Width = SELECT_LINE_SQUARE_SIZE,
             Height = SELECT_LINE_SQUARE_SIZE,
-            Fill = new SolidColorBrush(Colors.White),
+            Fill = new SolidColorBrush(fillColor),
             Stroke = new SolidColorBrush(Colors.Black),
             StrokeThickness = 1,
             Tag = "Marker"
@@ -837,6 +1114,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         System.Windows.Controls.Canvas.SetLeft(marker, x - marker.Width / 2);
         System.Windows.Controls.Canvas.SetTop(marker, y - marker.Height / 2);
         return marker;
+    }
+
+    private Color BlendColors(Color color1, Color color2, double ratio)
+    {
+        byte r = (byte)(color1.R * ratio + color2.R * (1 - ratio));
+        byte g = (byte)(color1.G * ratio + color2.G * (1 - ratio));
+        byte b = (byte)(color1.B * ratio + color2.B * (1 - ratio));
+        byte a = (byte)(color1.A * ratio + color2.A * (1 - ratio));
+
+        return Color.FromArgb(a, r, g, b);
     }
     #endregion
 }

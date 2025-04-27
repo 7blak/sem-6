@@ -25,6 +25,7 @@
                 <MenuItem x:Name="SelectToolItem" Header="Select Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <MenuItem x:Name="LineToolItem" Header="Line Tool" Click="MenuTool_Click" IsCheckable="True" IsChecked="True"/>
                 <MenuItem x:Name="CircleToolItem" Header="Circle Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="PolygonToolItem" Header="Polygon Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <Separator/>
                 <MenuItem StaysOpenOnClick="True">
                     <MenuItem.Header>
@@ -44,6 +45,7 @@
                         </StackPanel>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem x:Name="AntialiasingMenuItem" Header="Antialiasing" Click="MenuAntialiasing_Click" IsCheckable="True" IsChecked="False"/>
             </MenuItem>
         </Menu>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left" VerticalAlignment="Top">
