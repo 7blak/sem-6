@@ -1,20 +1,16 @@
-﻿using Microsoft.VisualBasic;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
+using rasterization_2.shapes;
+using rasterization_2.serialization;
 using System.ComponentModel;
-using System.IO;
-using System.Text;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using Xceed.Wpf.Toolkit;
-using static System.Net.Mime.MediaTypeNames;
+
+using static rasterization_2.Util;
 
 namespace rasterization_2;
 
@@ -24,172 +20,6 @@ public enum ToolType
     Line,
     Circle,
     Polygon
-}
-
-public class Line : INotifyPropertyChanged
-{
-    private double _x1, _y1, _x2, _y2, _thickness;
-    private Color _color;
-
-    public double X1
-    {
-        get => _x1;
-        set { _x1 = value; OnPropertyChanged(nameof(X1)); }
-    }
-    public double Y1
-    {
-        get => _y1;
-        set { _y1 = value; OnPropertyChanged(nameof(Y1)); }
-    }
-    public double X2
-    {
-        get => _x2;
-        set { _x2 = value; OnPropertyChanged(nameof(X2)); }
-    }
-    public double Y2
-    {
-        get => _y2;
-        set { _y2 = value; OnPropertyChanged(nameof(Y2)); }
-    }
-    public double Thickness
-    {
-        get => _thickness;
-        set { _thickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(Thickness)); }
-    }
-    public Color Color
-    {
-        get => _color;
-        set { _color = value; OnPropertyChanged(nameof(Color)); }
-    }
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-    public Line()
-    {
-        Color = Colors.Black;
-        Thickness = 1.0;
-    }
-}
-
-public class Circle : INotifyPropertyChanged
-{
-    private double _radius, _thickness;
-    private Color _color;
-    private Point _center;
-
-    public double Radius
-    {
-        get => _radius;
-        set { _radius = value; OnPropertyChanged(nameof(Radius)); }
-    }
-    public double Thickness
-    {
-        get => _thickness;
-        set { _thickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(Thickness)); }
-    }
-    public Color Color
-    {
-        get => _color;
-        set { _color = value; OnPropertyChanged(nameof(Color)); }
-    }
-    public Point Center
-    {
-        get => _center;
-        set { _center = value; OnPropertyChanged(nameof(Center)); }
-    }
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-    public Circle()
-    {
-        Color = Colors.Black;
-        Thickness = 1.0;
-        Center = new Point(0, 0);
-    }
-}
-
-public class Polygon : INotifyPropertyChanged
-{
-    private int _selectedVertexIndex = -1;
-    private double _thickness;
-    private Color _color;
-    private List<Point> _vertices;
-    public int SelectedVertexIndex
-    {
-        get => _selectedVertexIndex;
-        set { _selectedVertexIndex = value; OnPropertyChanged(nameof(SelectedVertexIndex)); }
-    }
-    public double Thickness
-    {
-        get => _thickness;
-        set { _thickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(Thickness)); }
-    }
-    public Color Color
-    {
-        get => _color;
-        set { _color = value; OnPropertyChanged(nameof(Color)); }
-    }
-    public List<Point> Vertices
-    {
-        get => _vertices;
-        set { _vertices = value; OnPropertyChanged(nameof(Vertices)); }
-    }
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-    public Polygon()
-    {
-        Color = Colors.Black;
-        Thickness = 1.0;
-        _vertices = [];
-    }
-}
-
-public class ProjectData
-{
-    public int BitmapWidth { get; set; }
-    public int BitmapHeight { get; set; }
-    public required List<LineDto> Lines { get; set; }
-    public required List<CircleDto> Circles { get; set; }
-    public required List<PolygonDto> Polygons { get; set; }
-}
-
-public class LineDto
-{
-    public double X1 { get; set; }
-    public double Y1 { get; set; }
-    public double X2 { get; set; }
-    public double Y2 { get; set; }
-    public double Thickness { get; set; }
-    public required string Color { get; set; }
-}
-
-public class CircleDto
-{
-    public double CenterX { get; set; }
-    public double CenterY { get; set; }
-    public double Radius { get; set; }
-    public double Thickness { get; set; }
-    public required string Color { get; set; }
-}
-
-public class PolygonDto
-{
-    public required List<VertexDto> Vertices { get; set; }
-    public double Thickness { get; set; }
-    public required string Color { get; set; }
-}
-
-public class VertexDto
-{
-    public double X { get; set; }
-    public double Y { get; set; }
 }
 
 public partial class MainWindow : Window, INotifyPropertyChanged
@@ -236,13 +66,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private List<Polygon> _polygons = [];
 
     public bool IsAntialiasingOn { get { return _isAntialiasingOn; } set { if (_isAntialiasingOn != value) { _isAntialiasingOn = value; OnPropertyChanged(nameof(IsAntialiasingOn)); } } }
-    public double CurrentThickness { get { return _currentThickness; } set { if (_currentThickness != value) { _currentThickness = value <= 0 ? 1 : value >= 20 ? 20 : value; OnPropertyChanged(nameof(CurrentThickness)); } } }
+    public double CurrentThickness { get { return _currentThickness; } set { if (_currentThickness != value) { _currentThickness = value <= 0 ? 1 : value >= 21 ? 21 : value; OnPropertyChanged(nameof(CurrentThickness)); } } }
 
     public Color CurrentColor { get { return _currentColor; } set { if (_currentColor != value) { _currentColor = value; OnPropertyChanged(nameof(CurrentColor)); } } }
 
     public Line? SelectedLine { get { return _selectedLine; } set { if (_selectedLine != value) { _selectedLine = value; OnPropertyChanged(nameof(SelectedLine)); } } }
     public Circle? SelectedCircle { get { return _selectedCircle; } set { if (_selectedCircle != value) { _selectedCircle = value; OnPropertyChanged(nameof(SelectedCircle)); } } }
     public Polygon? SelectedPolygon { get { return _selectedPolygon; } set { if (_selectedPolygon != value) { _selectedPolygon = value; OnPropertyChanged(nameof(SelectedPolygon)); } } }
+
+    public WriteableBitmap Bitmap { get { return _bitmap; } set { if (_bitmap != value) { _bitmap = value; OnPropertyChanged(nameof(Bitmap)); } } }
+
+    public List<Line> Lines { get { return _lines; } set { if (_lines != value) { _lines = value; OnPropertyChanged(nameof(Lines)); } } }
+    public List<Circle> Circles { get { return _circles; } set { if (_circles != value) { _circles = value; OnPropertyChanged(nameof(Circles)); } } }
+    public List<Polygon> Polygons { get { return _polygons; } set { if (_polygons != value) { _polygons = value; OnPropertyChanged(nameof(Polygons)); } } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -340,11 +176,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     #region Menu Item Handlers
     private void MenuNew_Click(object sender, RoutedEventArgs e)
     {
-        NewFileWindow newFileWindow = new();
-        newFileWindow.Owner = this;
-        newFileWindow.WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
-        newFileWindow.Left = Left + 50;
-        newFileWindow.Top = Top + 50;
+        NewFileWindow newFileWindow = new()
+        {
+            Owner = this,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
+            Left = Left + 50,
+            Top = Top + 50
+        };
         if (newFileWindow.ShowDialog() == true)
         {
             _bitmap = new WriteableBitmap(newFileWindow.XWidth, newFileWindow.XHeight, 96, 96, PixelFormats.Bgra32, null);
@@ -366,75 +204,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         };
         if (openFileDialog.ShowDialog() == true)
         {
-            _currentFilePath = openFileDialog.FileName;
-            string json = File.ReadAllText(_currentFilePath);
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            ProjectData data = JsonSerializer.Deserialize<ProjectData>(json, options) ?? throw new InvalidOperationException("Failed to deserialize project data");
-
-            _lines.Clear();
-            _circles.Clear();
-            _polygons.Clear();
-
-            Color ConvertColor(string s)
-            {
-                var cc = TypeDescriptor.GetConverter(typeof(Color));
-                return (Color)cc.ConvertFromString(s)!;
-            }
-
-            foreach (var dto in data.Lines)
-            {
-                var line = new Line
-                {
-                    X1 = dto.X1,
-                    Y1 = dto.Y1,
-                    X2 = dto.X2,
-                    Y2 = dto.Y2,
-                    Thickness = dto.Thickness,
-                    Color = ConvertColor(dto.Color)
-                };
-                _lines.Add(line);
-            }
-
-            foreach (var dto in data.Circles)
-            {
-                var circle = new Circle
-                {
-                    Center = new Point(dto.CenterX, dto.CenterY),
-                    Radius = dto.Radius,
-                    Thickness = dto.Thickness,
-                    Color = ConvertColor(dto.Color)
-                };
-                _circles.Add(circle);
-            }
-
-            foreach (var dto in data.Polygons)
-            {
-                var polygon = new Polygon
-                {
-                    Thickness = dto.Thickness,
-                    Color = ConvertColor(dto.Color),
-                    Vertices = new List<Point>()
-                };
-                foreach (var v in dto.Vertices)
-                    polygon.Vertices.Add(new Point(v.X, v.Y));
-                _polygons.Add(polygon);
-            }
-
-            _bitmap = new WriteableBitmap(data.BitmapWidth, data.BitmapHeight, 96, 96, PixelFormats.Bgra32, null);
-            CanvasHost.Width = data.BitmapWidth;
-            CanvasHost.Height = data.BitmapHeight;
-            Canvas.Width = data.BitmapWidth;
-            Canvas.Height = data.BitmapHeight;
-            RedrawAll();
+            Serialization.LoadFromFile(_currentFilePath = openFileDialog.FileName, this);
         }
     }
 
     private void MenuSave_Click(object sender, RoutedEventArgs e)
     {
-
+        if (_currentFilePath != null)
+            Serialization.SerializeToFile(_currentFilePath, this);
+        else
+            MenuSaveFile_Click(sender, e);
     }
 
     private void MenuSaveFile_Click(object sender, RoutedEventArgs e)
@@ -446,72 +225,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         };
         if (saveFileDialog.ShowDialog() == true)
         {
-            _currentFilePath = saveFileDialog.FileName;
-
-            ProjectData data = new ProjectData
-            {
-                BitmapWidth = _bitmap.PixelWidth,
-                BitmapHeight = _bitmap.PixelHeight,
-                Lines = new List<LineDto>(),
-                Circles = new List<CircleDto>(),
-                Polygons = new List<PolygonDto>()
-            };
-
-            string ConvertColor(Color c)
-            {
-                return $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
-            }
-
-            foreach (var line in _lines)
-            {
-                data.Lines.Add(new LineDto
-                {
-                    X1 = line.X1,
-                    Y1 = line.Y1,
-                    X2 = line.X2,
-                    Y2 = line.Y2,
-                    Thickness = line.Thickness,
-                    Color = ConvertColor(line.Color)
-                });
-            }
-
-            foreach (var circle in _circles)
-            {
-                data.Circles.Add(new CircleDto
-                {
-                    CenterX = circle.Center.X,
-                    CenterY = circle.Center.Y,
-                    Radius = circle.Radius,
-                    Thickness = circle.Thickness,
-                    Color = ConvertColor(circle.Color)
-                });
-            }
-
-            foreach (var polygon in _polygons)
-            {
-                var polygonDto = new PolygonDto
-                {
-                    Thickness = polygon.Thickness,
-                    Color = ConvertColor(polygon.Color),
-                    Vertices = new List<VertexDto>()
-                };
-                foreach (var vertex in polygon.Vertices)
-                {
-                    polygonDto.Vertices.Add(new VertexDto
-                    {
-                        X = vertex.X,
-                        Y = vertex.Y
-                    });
-                }
-                data.Polygons.Add(polygonDto);
-            }
-
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
-            string json = JsonSerializer.Serialize(data, options);
-            File.WriteAllText(_currentFilePath, json);
+            Serialization.SerializeToFile(saveFileDialog.FileName, this);
         }
     }
 
@@ -1108,12 +822,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             double xend = x1;
             double yend = y1 + gradient * (xend - x1);
-            double xgap = rfpart(x1 + 0.5);
+            double xgap = Rfpart(x1 + 0.5);
             double xpxl1 = xend;
-            double ypxl1 = ipart(yend);
+            double ypxl1 = Ipart(yend);
 
-            Color c1 = BlendColors(line.Color, _backgroundColor, rfpart(yend) * xgap);
-            Color c2 = BlendColors(line.Color, _backgroundColor, fpart(yend) * xgap);
+            Color c1 = BlendColors(line.Color, _backgroundColor, Rfpart(yend) * xgap);
+            Color c2 = BlendColors(line.Color, _backgroundColor, Fpart(yend) * xgap);
 
             if (steep)
             {
@@ -1130,12 +844,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             xend = x2;
             yend = y2 + gradient * (xend - x2);
-            xgap = fpart(x2 + 0.5);
+            xgap = Fpart(x2 + 0.5);
             double xpxl2 = xend;
-            double ypxl2 = ipart(yend);
+            double ypxl2 = Ipart(yend);
 
-            c1 = BlendColors(line.Color, _backgroundColor, rfpart(yend) * xgap);
-            c2 = BlendColors(line.Color, _backgroundColor, fpart(yend) * xgap);
+            c1 = BlendColors(line.Color, _backgroundColor, Rfpart(yend) * xgap);
+            c2 = BlendColors(line.Color, _backgroundColor, Fpart(yend) * xgap);
 
             if (steep)
             {
@@ -1152,8 +866,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 for (int x = (int)xpxl1 + 1; x < xpxl2 - 1; x++)
                 {
-                    DrawPixel((int)ipart(intery), x, buffer, stride, BlendColors(line.Color, _backgroundColor, rfpart(intery)));
-                    DrawPixel((int)ipart(intery) + 1, x, buffer, stride, BlendColors(line.Color, _backgroundColor, fpart(intery)));
+                    DrawPixel((int)Ipart(intery), x, buffer, stride, BlendColors(line.Color, _backgroundColor, Rfpart(intery)));
+                    DrawPixel((int)Ipart(intery) + 1, x, buffer, stride, BlendColors(line.Color, _backgroundColor, Fpart(intery)));
                     intery += gradient;
                 }
             }
@@ -1161,8 +875,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 for (int x = (int)xpxl1 + 1; x < xpxl2 - 1; x++)
                 {
-                    DrawPixel(x, (int)ipart(intery), buffer, stride, BlendColors(line.Color, _backgroundColor, rfpart(intery)));
-                    DrawPixel(x, (int)ipart(intery) + 1, buffer, stride, BlendColors(line.Color, _backgroundColor, fpart(intery)));
+                    DrawPixel(x, (int)Ipart(intery), buffer, stride, BlendColors(line.Color, _backgroundColor, Rfpart(intery)));
+                    DrawPixel(x, (int)Ipart(intery) + 1, buffer, stride, BlendColors(line.Color, _backgroundColor, Fpart(intery)));
                     intery += gradient;
                 }
             }
@@ -1289,12 +1003,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         void DrawThick8Octants()
         {
             DrawThickPixel(xc + y, yc - x, buffer, stride, circle.Color, halfT, false); // octant 1
-            DrawThickPixel(xc + x, yc - y, buffer, stride, circle.Color, halfT, true); // octant 2
-            DrawThickPixel(xc - x, yc - y, buffer, stride, circle.Color, halfT, true); // octant 3
+            DrawThickPixel(xc + x, yc - y, buffer, stride, circle.Color, halfT, true);  // octant 2
+            DrawThickPixel(xc - x, yc - y, buffer, stride, circle.Color, halfT, true);  // octant 3
             DrawThickPixel(xc - y, yc - x, buffer, stride, circle.Color, halfT, false); // octant 4
             DrawThickPixel(xc - y, yc + x, buffer, stride, circle.Color, halfT, false); // octant 5
-            DrawThickPixel(xc - x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 6
-            DrawThickPixel(xc + x, yc + y, buffer, stride, circle.Color, halfT, true); // octant 7
+            DrawThickPixel(xc - x, yc + y, buffer, stride, circle.Color, halfT, true);  // octant 6
+            DrawThickPixel(xc + x, yc + y, buffer, stride, circle.Color, halfT, true);  // octant 7
             DrawThickPixel(xc + y, yc + x, buffer, stride, circle.Color, halfT, false); // octant 8
         }
 
@@ -1313,8 +1027,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private unsafe void DrawPolygon(Polygon polygon)
     {
-        if (polygon == null)
-            throw new ArgumentNullException("Current polygon was null, something went wrong");
+        ArgumentNullException.ThrowIfNull(polygon, "Current polygon was null, something went wrong");
 
         for (int i = 0; i < polygon.Vertices.Count; i++)
         {
@@ -1347,7 +1060,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void RedrawAll()
+    public void RedrawAll()
     {
         ClearBitmap();
         foreach (var line in _lines)
@@ -1364,6 +1077,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    #region Marker Functions
     private void UpdateSelectedLineMarkers()
     {
         RemoveCanvasHostChildrenTag("Marker");
@@ -1371,8 +1085,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedLine == null)
             return;
 
-        Rectangle startMarker = CreateMarker(SelectedLine.X1, SelectedLine.Y1, Colors.White, true);
-        Rectangle endMarker = CreateMarker(SelectedLine.X2, SelectedLine.Y2, Colors.White, false);
+        System.Windows.Shapes.Rectangle startMarker = CreateMarker(SelectedLine.X1, SelectedLine.Y1, Colors.White, true);
+        System.Windows.Shapes.Rectangle endMarker = CreateMarker(SelectedLine.X2, SelectedLine.Y2, Colors.White, false);
 
         CanvasHost.Children.Add(startMarker);
         CanvasHost.Children.Add(endMarker);
@@ -1385,8 +1099,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedCircle == null)
             return;
 
-        Rectangle centerMarker = CreateMarker(SelectedCircle.Center.X, SelectedCircle.Center.Y, Colors.White, true);
-        Rectangle circumferenceMarker = CreateMarker(SelectedCircle.Center.X + SelectedCircle.Radius, SelectedCircle.Center.Y, Colors.White, false);
+        System.Windows.Shapes.Rectangle centerMarker = CreateMarker(SelectedCircle.Center.X, SelectedCircle.Center.Y, Colors.White, true);
+        System.Windows.Shapes.Rectangle circumferenceMarker = CreateMarker(SelectedCircle.Center.X + SelectedCircle.Radius, SelectedCircle.Center.Y, Colors.White, false);
 
         CanvasHost.Children.Add(centerMarker);
         CanvasHost.Children.Add(circumferenceMarker);
@@ -1398,7 +1112,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SelectedPolygon == null)
             return;
 
-        _verticesCopy = SelectedPolygon.Vertices.ToList();
+        _verticesCopy = [.. SelectedPolygon.Vertices];
 
         double sumX = 0, sumY = 0;
 
@@ -1407,11 +1121,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             sumX += SelectedPolygon.Vertices[i].X;
             sumY += SelectedPolygon.Vertices[i].Y;
 
-            Rectangle marker = CreateMarker(SelectedPolygon.Vertices[i].X, SelectedPolygon.Vertices[i].Y, i == 0 ? Colors.DodgerBlue : Colors.White, false);
+            System.Windows.Shapes.Rectangle marker = CreateMarker(SelectedPolygon.Vertices[i].X, SelectedPolygon.Vertices[i].Y, i == 0 ? Colors.DodgerBlue : Colors.White, false);
             CanvasHost.Children.Add(marker);
         }
 
-        Rectangle centerMarker = CreateMarker(sumX / SelectedPolygon.Vertices.Count, sumY / SelectedPolygon.Vertices.Count, Colors.PaleVioletRed, true);
+        System.Windows.Shapes.Rectangle centerMarker = CreateMarker(sumX / SelectedPolygon.Vertices.Count, sumY / SelectedPolygon.Vertices.Count, Colors.PaleVioletRed, true);
         CanvasHost.Children.Add(centerMarker);
 
         _startPoint = new Point(sumX / SelectedPolygon.Vertices.Count, sumY / SelectedPolygon.Vertices.Count);
@@ -1443,6 +1157,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Canvas.CaptureMouse();
         e.Handled = true;
     }
+    #endregion
 
     private unsafe void ClearBitmap()
     {
@@ -1468,20 +1183,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     #endregion
 
     #region Helper and Utility Functions
-    private static double DistancePointToLine(Point p, Point a, Point b)
-    {
-        Vector ap = p - a, ab = b - a;
-        double t = Vector.Multiply(ap, ab) / ab.LengthSquared;
-        t = Math.Max(0, Math.Min(1, t));
-        Point projection = a + t * ab;
-        return (p - projection).Length;
-    }
-
-    private static double DistancePointToCircle(Point p, Circle circle)
-    {
-        return Math.Abs((p - circle.Center).Length - circle.Radius);
-    }
-
     private void RemoveCanvasHostChildrenTag(string tag)
     {
         for (int i = CanvasHost.Children.Count - 1; i >= 0; i--)
@@ -1533,9 +1234,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         buffer[idx + 3] = color.A;
     }
 
-    Rectangle CreateMarker(double x, double y, Color fillColor, bool isStartMarker)
+    System.Windows.Shapes.Rectangle CreateMarker(double x, double y, Color fillColor, bool isStartMarker)
     {
-        Rectangle marker = new()
+        System.Windows.Shapes.Rectangle marker = new()
         {
             Width = SELECT_LINE_SQUARE_SIZE,
             Height = SELECT_LINE_SQUARE_SIZE,
@@ -1553,36 +1254,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         System.Windows.Controls.Canvas.SetLeft(marker, x - marker.Width / 2);
         System.Windows.Controls.Canvas.SetTop(marker, y - marker.Height / 2);
         return marker;
-    }
-
-    private Color BlendColors(Color color1, Color color2, double ratio)
-    {
-        byte r = (byte)(color1.R * ratio + color2.R * (1 - ratio));
-        byte g = (byte)(color1.G * ratio + color2.G * (1 - ratio));
-        byte b = (byte)(color1.B * ratio + color2.B * (1 - ratio));
-        byte a = (byte)(color1.A * ratio + color2.A * (1 - ratio));
-
-        return Color.FromArgb(a, r, g, b);
-    }
-
-    private static double ipart(double x)
-    {
-        return Math.Floor(x);
-    }
-
-    private static double round(double x)
-    {
-        return ipart(x + 0.5);
-    }
-
-    private static double fpart(double x)
-    {
-        return x - ipart(x);
-    }
-
-    private static double rfpart(double x)
-    {
-        return 1 - fpart(x);
     }
     #endregion
 }

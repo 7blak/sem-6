@@ -21,6 +21,8 @@ namespace rasterization_2
     public partial class NewFileWindow : Window, INotifyPropertyChanged
     {
         #region Hide Icon Sorcery
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
         [DllImport("user32.dll")]
         static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -45,9 +47,11 @@ namespace rasterization_2
             var hwnd = new WindowInteropHelper(this).Handle;
             int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             exStyle |= WS_EX_DLGMODALFRAME;
-            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+            _ = SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
             SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
         }
+#pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+#pragma warning restore IDE0079 // Remove unnecessary suppression
         #endregion
 
         private int _width;
