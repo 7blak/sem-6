@@ -19,7 +19,8 @@ public enum ToolType
     Select,
     Line,
     Circle,
-    Polygon
+    Polygon,
+    Pill
 }
 
 public partial class MainWindow : Window, INotifyPropertyChanged
@@ -33,6 +34,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private bool _isDrawingLine = false;
     private bool _isDrawingCircle = false;
     private bool _isDrawingPolygon = false;
+    private bool _isDrawingPill = false;
     private bool _isDraggingMarker = false;
     private bool _isDraggingStartPoint = false;
     private bool _isAntialiasingOn = false;
@@ -52,6 +54,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Circle? _selectedCircle = null;
     private Polygon? _selectedPolygon = null;
     private Polygon? _currentPolygon = null;
+
+    private Line? _line1 = null;
+    private Line? _line2 = null;
+    private int _lineCount = 0;
 
     private System.Windows.Shapes.Line? _previewLine = null;
     private System.Windows.Shapes.Ellipse? _previewCircle = null;
@@ -253,6 +259,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _currentTool = ToolType.Circle;
         else if (sender == PolygonToolItem)
             _currentTool = ToolType.Polygon;
+        else if (sender == PillToolItem)
+            _currentTool = ToolType.Pill;
         else
             throw new ArgumentException("Unknown tool type");
 
@@ -260,6 +268,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LineToolItem.IsChecked = _currentTool == ToolType.Line;
         CircleToolItem.IsChecked = _currentTool == ToolType.Circle;
         PolygonToolItem.IsChecked = _currentTool == ToolType.Polygon;
+        PillToolItem.IsChecked = _currentTool == ToolType.Pill;
     }
 
     private void MenuAntialiasing_Click(object sender, RoutedEventArgs e)
@@ -475,6 +484,71 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 _currentPolygon.Vertices.Add(vertexToAdd);
                 Select(_currentPolygon);
                 CanvasHost.Children.Add(polygonPreviewLine);
+            }
+        }
+        else if (_currentTool == ToolType.Pill)
+        {
+            DeselectAll();
+            _isDrawingPill = true;
+            if (_lineCount == 0)
+            {
+                _startPoint = p;
+                _lineCount++;
+                _previewLine = new System.Windows.Shapes.Line()
+                {
+                    X1 = _startPoint.X,
+                    Y1 = _startPoint.Y,
+                    X2 = _startPoint.X,
+                    Y2 = _startPoint.Y,
+                    Stroke = new SolidColorBrush(_currentColor),
+                    StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
+                    Tag = "PreviewLine"
+                };
+                CanvasHost.Children.Add(_previewLine);
+            }
+            else if (_lineCount == 1)
+            {
+                _line1 = new()
+                {
+                    X1 = _startPoint.X,
+                    Y1 = _startPoint.Y,
+                    X2 = p.X,
+                    Y2 = p.Y,
+                    Color = _currentColor,
+                    Thickness = _currentThickness
+                };
+                _startPoint = p;
+                _lineCount++;
+                _previewLine = new System.Windows.Shapes.Line()
+                {
+                    X1 = _startPoint.X,
+                    Y1 = _startPoint.Y,
+                    X2 = _startPoint.X,
+                    Y2 = _startPoint.Y,
+                    Stroke = new SolidColorBrush(_currentColor),
+                    StrokeThickness = IsAntialiasingOn ? 1 : _currentThickness,
+                    Tag = "PreviewLine"
+                };
+                CanvasHost.Children.Add(_previewLine);
+            }
+            else if (_lineCount == 2)
+            {
+                _line2 = new()
+                {
+                    X1 = _startPoint.X,
+                    Y1 = _startPoint.Y,
+                    X2 = p.X,
+                    Y2 = p.Y,
+                    Color = _currentColor,
+                    Thickness = _currentThickness
+                };
+                
+                DrawPill(_line1!, _line2!);
+                RemoveCanvasHostChildrenTag("PreviewLine");
+                _isDrawingPill = false;
+                _line1 = null;
+                _line2 = null;
+                _lineCount = 0;
             }
         }
     }
@@ -1057,6 +1131,153 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     Thickness = polygon.Thickness
                 });
             }
+        }
+    }
+
+    private unsafe void DrawPill(Line centerLine, Line radiusLine)
+    {
+        double dxR = radiusLine.X2 - radiusLine.X1;
+        double dyR = radiusLine.Y2 - radiusLine.Y1;
+        double radius = Math.Sqrt(dxR * dxR + dyR * dyR);
+
+        double dx = centerLine.X2 - centerLine.X1;
+        double dy = centerLine.Y2 - centerLine.Y1;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+
+        Vector u = new Vector(dx / length, dy / length); //unit dir. along the centerLine
+        Vector n = new Vector(-u.Y, u.X); //perp. to unit normal
+
+        Point c1 = new Point(centerLine.X1, centerLine.Y1);
+        Point c2 = new Point(centerLine.X2, centerLine.Y2);
+
+        Point pA1 = c1 + n * radius;
+        Point pA2 = c2 + n * radius;
+        Point pB1 = c1 - n * radius;
+        Point pB2 = c2 - n * radius;
+
+        var edge1 = new Line
+        {
+            X1 = pA1.X,
+            Y1 = pA1.Y,
+            X2 = pA2.X,
+            Y2 = pA2.Y,
+            Color = centerLine.Color,
+            Thickness = centerLine.Thickness
+        };
+
+        var edge2 = new Line
+        {
+            X1 = pB1.X,
+            Y1 = pB1.Y,
+            X2 = pB2.X,
+            Y2 = pB2.Y,
+            Color = centerLine.Color,
+            Thickness = centerLine.Thickness
+        };
+
+        DrawLine(edge1);
+        DrawLine(edge2);
+
+        DrawSemiCircle(new Circle() { Center = c1, Color = _currentColor, Radius = radius, Thickness = _currentThickness}, u);
+        DrawSemiCircle(new Circle() { Center = c2, Color = _currentColor, Radius = radius, Thickness = _currentThickness }, -u);
+    }
+
+    private unsafe void DrawSemiCircle(Circle circle, Vector direction)
+    {
+        int xc = (int)Math.Round(circle.Center.X);
+        int yc = (int)Math.Round(circle.Center.Y);
+        int radius = (int)Math.Round(circle.Radius);
+
+        int halfT = (int)(circle.Thickness / 2);
+
+        int d = (int)(1 - circle.Radius) + halfT;
+        int dE = 3;
+        int dSE = (int)(5 - 2 * circle.Radius) + halfT;
+
+        int x = IsAntialiasingOn ? radius : 0;
+        int y = IsAntialiasingOn ? 0 : (int)circle.Radius + halfT;
+
+        _bitmap.Lock();
+        byte* buffer = (byte*)_bitmap.BackBuffer.ToPointer();
+        int stride = _bitmap.BackBufferStride;
+
+        if (IsAntialiasingOn)
+        {
+            Draw8Octants(x, y, circle.Color);
+
+            while (x > y)
+            {
+                y++;
+                double f = Math.Sqrt(radius * radius - y * y);
+                int xi = (int)Math.Ceiling(f);
+
+                Draw8Octants(xi, y, BlendColors(circle.Color, _backgroundColor, 1 - xi + f));
+                Draw8Octants(xi - 1, y, BlendColors(circle.Color, _backgroundColor, xi - f));
+            }
+        }
+        else
+        {
+            DrawThick8Octants();
+
+            while (y > x)
+            {
+                if (d < 0)
+                {
+                    d += dE;
+                    dE += 2;
+                    dSE += 2;
+                }
+                else
+                {
+                    d += dSE;
+                    dE += 2;
+                    dSE += 4;
+                    y--;
+                }
+                x++;
+                DrawThick8Octants();
+            }
+        }
+
+        _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
+        _bitmap.Unlock();
+        Canvas.Source = _bitmap;
+
+        void DrawThick8Octants()
+        {
+            var pts = new (int px, int py, bool steep)[]
+            {
+                (xc + y, yc - x, false),  // octant 1
+                (xc + x, yc - y, true),   // octant 2
+                (xc - x, yc - y, true),   // octant 3
+                (xc - y, yc - x, false),  // octant 4
+                (xc - y, yc + x, false),  // octant 5
+                (xc - x, yc + y, true),   // octant 6
+                (xc + x, yc + y, true),   // octant 7
+                (xc + y, yc + x, false),  // octant 8
+            };
+
+            foreach (var (px, py, steep) in pts)
+            {
+                Vector off = new Vector(px - xc, py - yc);
+                if (Vector.Multiply(off, direction) <= 0)
+                    DrawThickPixel(px, py, buffer, stride, circle.Color, halfT, steep);
+            }
+        }
+
+        void Draw8Octants(int x, int y, Color color)
+        {
+            Vector off = new Vector(x - xc, y - yc);
+            if (Vector.Multiply(off, direction) < 0)
+                return;
+            DrawPixel(xc + y, yc - x, buffer, stride, color); // octant 1
+            DrawPixel(xc + x, yc - y, buffer, stride, color); // octant 2
+            DrawPixel(xc - x, yc - y, buffer, stride, color); // octant 3
+            DrawPixel(xc - y, yc - x, buffer, stride, color); // octant 4
+            DrawPixel(xc - y, yc + x, buffer, stride, color); // octant 5
+            DrawPixel(xc - x, yc + y, buffer, stride, color); // octant 6
+            DrawPixel(xc + x, yc + y, buffer, stride, color); // octant 7
+            DrawPixel(xc + y, yc + x, buffer, stride, color); // octant 8
         }
     }
 
