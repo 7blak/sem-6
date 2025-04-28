@@ -37,8 +37,8 @@ public class Circle : INotifyPropertyChanged
     }
     public Circle()
     {
-        Color = Colors.Black;
-        Thickness = 1.0;
-        Center = new Point(0, 0);
+        _color = Colors.Black;
+        _thickness = 1.0;
+        _center = new Point(0, 0);
     }
 }
