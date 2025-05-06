@@ -14,6 +14,16 @@ def agent_portrayal(agent):
         }
     return {}
 
+propertylayer_portrayal = {
+    'is_infected': {
+        'color': 'tab:red',
+        'vmax': True,
+        'vmin': False,
+        'alpha': 0.3,
+        'colorbar': False
+    },
+}
+
 model_params = {
     "population_size": {
         "type": "SliderInt",
@@ -39,12 +49,20 @@ model_params = {
         "max": 10,
         "step": 1,
     },
+    "infected_cells_count": {
+        "type": "SliderInt",
+        "value": 1,
+        "label": "Number of infected cells:",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+    },
     "grid_width": 10,
     "grid_height": 10,
 }
 
 model = InfectiousDiseaseSpreadModel()
-grid_visualization = make_space_component(agent_portrayal)
+grid_visualization = make_space_component(agent_portrayal, propertylayer_portrayal = propertylayer_portrayal)
 
 page = SolaraViz(
     model,
