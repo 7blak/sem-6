@@ -1,7 +1,11 @@
+import logging
+
 from mesa import Model
 from mesa.experimental.cell_space import OrthogonalVonNeumannGrid
 
 from agents import PersonAgent
+
+logger = logging.getLogger(__name__)
 
 class InfectiousDiseaseSpreadModel(Model):
     population_size: int
@@ -52,7 +56,18 @@ class InfectiousDiseaseSpreadModel(Model):
 
         for agent, x_coord, y_coord in zip(self._agents_by_type[PersonAgent], x_range, y_range):
             agent.cell = self.grid[(x_coord, y_coord)]
+
+    def _stop_condition(step) -> None:
+        def perform_step(self):
+            if len(self._agents_by_type[PersonAgent].select(lambda agent: not agent.is_infected)) == 0:
+                self.running = False
+                logger.info("All agents are infected. Stopping the model.")
+            else:
+                step(self)
+            
+        return perform_step
     
+    @_stop_condition
     def step(self):
         self._agents_by_type[PersonAgent].do("move_around")
         self._agents_by_type[PersonAgent].do("infect_others")

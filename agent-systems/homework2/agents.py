@@ -6,7 +6,7 @@ from mesa import Model, Agent
 from mesa.agent import AgentSet
 from mesa.experimental.cell_space import Grid2DMovingAgent
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class PersonAgent(Grid2DMovingAgent):
@@ -40,8 +40,10 @@ class PersonAgent(Grid2DMovingAgent):
     
     def move_around(self):
         self.check_grid_initialization(error_msg = "The agent cannot move around the grid.")
-        logger.info(f'[{self._type} {self.unique_id}] My current position is {self.pos}.')
-        self.move_to(self.cell.neighborhood.select_random_cell())
+        prev_pos = self.cell.coordinate
+        if self.random.random() < self._moving_probability:
+            self.move_to(self.cell.neighborhood.select_random_cell())
+            logger.info(f'[{self._type} {self.unique_id}] Moved from {prev_pos} to {self.cell.coordinate}.')
 
     def infect_others(self):
         self.check_grid_initialization(error_msg = "The agent cannot infect others.")
@@ -52,7 +54,6 @@ class PersonAgent(Grid2DMovingAgent):
             for agent in encountered_agents:
                 if not agent.is_infected and self.random.random() < 0.2:
                     agent.become_infected(self.unique_id, is_direct = True)
-
 
     def check_grid_initialization(self, error_msg: str = ''):
         if self.cell is None:
