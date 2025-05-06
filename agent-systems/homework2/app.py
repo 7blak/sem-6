@@ -11,7 +11,7 @@ def agent_portrayal(agent):
         return {
             "color" : "tab:red" if agent.is_infected else "tab:blue",
             "size": 50 if agent.is_infected else 20,
-            "shape": "square" if agent.has_comorbidities else "circle",
+            "marker": "x" if agent.has_comorbidities else "o",
         }
     return {}
 
@@ -56,7 +56,7 @@ model_params = {
         "type": "SliderInt",
         "value": 1,
         "label": "Number of infected cells:",
-        "min": 1,
+        "min": 0,
         "max": 10,
         "step": 1,
     },
@@ -64,14 +64,24 @@ model_params = {
     "grid_height": 10,
 }
 
+def get_total_interactions(model: InfectiousDiseaseSpreadModel):
+    total_interactions = model.direct_interactions_count + model.location_interactions_count
+    return solara.Markdown(f"Total interactions: {total_interactions}")
 
 model = InfectiousDiseaseSpreadModel()
 grid_visualization = make_space_component(agent_portrayal, propertylayer_portrayal = propertylayer_portrayal)
 
+infection_chart = make_plot_component(
+    {
+        "Is_Infected": "tab:red",
+        "Direct_Infection": "tab:orange",
+        "Location_Infection": "tab:blue",
+    }
+)
 
 page = SolaraViz(
     model,
-    components = [grid_visualization],
+    components = [grid_visualization, infection_chart],
     model_params = model_params,
     name = "Disease Spread Simulation",
 )

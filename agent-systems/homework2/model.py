@@ -3,6 +3,7 @@ import numpy as np
 
 from mesa import Model
 from mesa.experimental.cell_space import OrthogonalVonNeumannGrid, PropertyLayer
+from mesa.datacollection import DataCollector
 
 from agents import PersonAgent
 
@@ -14,6 +15,9 @@ class InfectiousDiseaseSpreadModel(Model):
     comorbidities_population_size: int
     infected_cells_count: int
     moving_probability: float
+    datacollector: DataCollector
+    direct_interactions_count: int = 0
+    location_interactions_count: int = 0
     grid: OrthogonalVonNeumannGrid
     seed: int
 
@@ -39,6 +43,7 @@ class InfectiousDiseaseSpreadModel(Model):
 
         self.generate_person_agents()
         self.generate_infected_cell_locations(grid_width, grid_height, infected_cells_count)
+        self.init_data_collector()
         
 
     def generate_person_agents(self):
@@ -84,6 +89,29 @@ class InfectiousDiseaseSpreadModel(Model):
         np.random.shuffle(cells_distribution)
 
         return cells_distribution.reshape((grid_width, grid_height))
+    
+
+    def init_data_collector(self):
+        self.datacollector = DataCollector(
+            model_reporters = {
+                "Is_Infected": self.count_infected_agents,
+                "Direct_Infection": self.count_direct_infections,
+                "Location_Infection": self.count_indirect_infections,
+            },
+        )
+        self.datacollector.collect(self)
+
+
+    def count_infected_agents(self):
+        return len(self._agents_by_type[PersonAgent].select(lambda agent: agent.is_infected))
+
+
+    def count_direct_infections(self):
+        return self.direct_interactions_count
+    
+
+    def count_indirect_infections(self):
+        return self.location_interactions_count
 
 
     def _stop_condition(step) -> None:
@@ -99,6 +127,7 @@ class InfectiousDiseaseSpreadModel(Model):
 
     @_stop_condition
     def step(self):
+        self.datacollector.collect(self)
         self._agents_by_type[PersonAgent].do("move_around")
         self._agents_by_type[PersonAgent].do("infect_others")
         self._agents_by_type[PersonAgent].do("random_infection_from_location")

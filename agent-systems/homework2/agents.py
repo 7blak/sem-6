@@ -64,7 +64,7 @@ class PersonAgent(Grid2DMovingAgent):
                 infection_probability = 0.75 if agent.has_comorbidities else 0.5
                 if not agent.is_infected and self.random.random() < infection_probability:
                     agent.become_infected(self.unique_id, is_direct = True)
-
+                    self.model.direct_interactions_count += 1
 
     def random_infection_from_location(self):
         self.check_grid_initialization(error_msg = "The agent cannot get infected (does not exist on grid).")
@@ -85,6 +85,7 @@ class PersonAgent(Grid2DMovingAgent):
             if self.random.random() < infection_probability:
                 logger.info(f'[{self._type} {self.unique_id}] I got infected from my location.')
                 self.become_infected(self.unique_id, is_direct = False)
+                self.model.location_interactions_count += 1
 
 
     def check_neighbourhood_for_infection(self):
