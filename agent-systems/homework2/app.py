@@ -5,6 +5,7 @@ from mesa.visualization import SolaraViz, make_space_component, make_plot_compon
 from agents import PersonAgent
 from model import InfectiousDiseaseSpreadModel
 
+
 def agent_portrayal(agent):
     if isinstance(agent, PersonAgent):
         return {
@@ -13,6 +14,7 @@ def agent_portrayal(agent):
             "shape": "square" if agent.has_comorbidities else "circle",
         }
     return {}
+
 
 propertylayer_portrayal = {
     'is_infected': {
@@ -23,6 +25,7 @@ propertylayer_portrayal = {
         'colorbar': False
     },
 }
+
 
 model_params = {
     "population_size": {
@@ -61,8 +64,10 @@ model_params = {
     "grid_height": 10,
 }
 
+
 model = InfectiousDiseaseSpreadModel()
 grid_visualization = make_space_component(agent_portrayal, propertylayer_portrayal = propertylayer_portrayal)
+
 
 page = SolaraViz(
     model,

@@ -17,6 +17,7 @@ class InfectiousDiseaseSpreadModel(Model):
     grid: OrthogonalVonNeumannGrid
     seed: int
 
+
     def __init__(self,
                  population_size: int = 10,
                  infected_population_size: int = 1,
@@ -39,6 +40,7 @@ class InfectiousDiseaseSpreadModel(Model):
         self.generate_person_agents()
         self.generate_infected_cell_locations(grid_width, grid_height, infected_cells_count)
         
+
     def generate_person_agents(self):
         PersonAgent.create_agents(self, self.population_size - self.infected_population_size - self.comorbidities_population_size, 
                                  is_infected = False,
@@ -55,6 +57,7 @@ class InfectiousDiseaseSpreadModel(Model):
 
         self.place_agents_on_grid()
     
+
     def place_agents_on_grid(self):
         x_range = self.rng.integers(0, self.grid.width, size=self.population_size)
         y_range = self.rng.integers(0, self.grid.height, size=self.population_size)
@@ -62,22 +65,26 @@ class InfectiousDiseaseSpreadModel(Model):
         for agent, x_coord, y_coord in zip(self._agents_by_type[PersonAgent], x_range, y_range):
             agent.cell = self.grid[(x_coord, y_coord)]
 
+
     def generate_infected_cell_locations(self, grid_width: int, grid_height: int, infected_cells_count: int):
         infected_cell_locations = self.get_random_infected_cell_distribution(grid_width, grid_height, infected_cells_count)
 
         for cell in self.grid.all_cells.cells:
             cell.properties['is_infected'] = infected_cell_locations[cell.coordinate]
+            cell.properties['steps_since_infected'] = 0
 
         property_layer = PropertyLayer('is_infected', (grid_width, grid_height), False, bool)
         property_layer.data = infected_cell_locations
 
         self.grid.add_property_layer(property_layer)
 
+
     def get_random_infected_cell_distribution(self, grid_width: int, grid_height: int, infected_cells_count: int):
         cells_distribution = np.array([True] * infected_cells_count + [False] * (grid_width * grid_height - infected_cells_count))
         np.random.shuffle(cells_distribution)
 
         return cells_distribution.reshape((grid_width, grid_height))
+
 
     def _stop_condition(step) -> None:
         def perform_step(self):
@@ -89,7 +96,26 @@ class InfectiousDiseaseSpreadModel(Model):
             
         return perform_step
     
+
     @_stop_condition
     def step(self):
         self._agents_by_type[PersonAgent].do("move_around")
         self._agents_by_type[PersonAgent].do("infect_others")
+        self._agents_by_type[PersonAgent].do("random_infection_from_location")
+
+        for cell in self.grid.all_cells.cells:
+            if cell.properties.get('is_infected', False):
+                if any(agent.is_infected for agent in cell.agents):
+                    cell.properties['steps_since_infected'] = 0
+                else:
+                    cell.properties['steps_since_infected'] += 1
+                if cell.properties['steps_since_infected'] > 2:
+                    cell.properties['is_infected'] = False
+                    cell.properties['steps_since_infected'] = 0
+        
+        infected_cell_data = np.array([cell.properties['is_infected'] for cell in self.grid.all_cells.cells]).reshape(self.grid.width, self.grid.height)
+
+        self.grid.remove_property_layer('is_infected')
+        property_layer = PropertyLayer('is_infected', (self.grid.width, self.grid.height), False, bool)
+        property_layer.data = infected_cell_data
+        self.grid.add_property_layer(property_layer)
