@@ -26,6 +26,7 @@
                 <MenuItem x:Name="LineToolItem" Header="Line Tool" Click="MenuTool_Click" IsCheckable="True" IsChecked="True"/>
                 <MenuItem x:Name="CircleToolItem" Header="Circle Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <MenuItem x:Name="PolygonToolItem" Header="Polygon Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="PillToolItem" Header="Pill Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <Separator/>
                 <MenuItem StaysOpenOnClick="True">
                     <MenuItem.Header>
