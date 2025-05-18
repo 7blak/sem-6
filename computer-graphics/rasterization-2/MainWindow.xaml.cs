@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using Xceed.Wpf.Toolkit;
 
 using static rasterization_2.Util;
+using System.Security.Cryptography.X509Certificates;
 
 namespace rasterization_2;
 
@@ -55,6 +56,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Polygon? _selectedPolygon = null;
     private Polygon? _currentPolygon = null;
     private Rectangle? _selectedRectangle = null;
+
+    private Polygon? _subjectPolygon = null;
+    private Polygon? _clippingPolygon = null;
+    private Rectangle? _clippingRectangle = null;
 
     private System.Windows.Shapes.Line? _previewLine = null;
     private System.Windows.Shapes.Ellipse? _previewCircle = null;
@@ -630,10 +635,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Point p = e.GetPosition(Canvas);
         SelectedLine = _lines.FirstOrDefault(line => DistancePointToLine(p, new Point(line.X1, line.Y1), new Point(line.X2, line.Y2)) <= SELECT_LINE_ENDPOINT_TOLERANCE);
         SelectedCircle = _circles.FirstOrDefault(circle => DistancePointToCircle(p, circle) <= SELECT_CIRCLE_NEAR_TOLERANCE);
-        SelectedPolygon = _polygons.FirstOrDefault(polygon =>
-                   polygon.Vertices.Any(vertex => (vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE) ||
-                   polygon.Vertices.Zip(polygon.Vertices.Skip(1).Append(polygon.Vertices.First()), (start, end) =>
-                   DistancePointToLine(p, start, end) <= SELECT_LINE_NEAR_TOLERANCE).Any());
+        //SelectedPolygon = _polygons.FirstOrDefault(polygon =>
+        //           polygon.Vertices.Any(vertex => (vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE) ||
+        //           polygon.Vertices.Zip(polygon.Vertices.Skip(1).Append(polygon.Vertices.First()), (start, end) =>
+        //           DistancePointToLine(p, start, end) <= SELECT_LINE_NEAR_TOLERANCE).Any());
+        SelectedPolygon = null;
+        foreach (var polygon in _polygons)
+        {
+            for (int i = 0; i < polygon.Vertices.Count; i++)
+            {
+                var vertex = polygon.Vertices[i];
+                if ((vertex - p).Length <= SELECT_POLYGON_VERTEX_TOLERANCE)
+                {
+                    Select(polygon);
+                    break;
+                }
+                if (DistancePointToLine(p, vertex, polygon.Vertices[(i + 1) % polygon.Vertices.Count]) <= SELECT_LINE_NEAR_TOLERANCE)
+                {
+                    Select(polygon);
+                    break;
+                }
+            }
+        }
+
         if (SelectedLine != null)
         {
             ContextMenu cm = new();
@@ -829,6 +853,115 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             miColor.Header = miColorContainer;
             miColor.StaysOpenOnClick = true;
             cm.Items.Add(miColor);
+
+            MenuItem miSubject = new() { Header = "[Clipping] Subject", IsCheckable = true };
+            miSubject.Loaded += (s, e) =>
+            {
+                miSubject.IsChecked = _subjectPolygon == SelectedPolygon;
+            };
+            miSubject.Click += (_, __) =>
+            {
+                if (miSubject.IsChecked && _clippingPolygon != SelectedPolygon)
+                {
+                    _subjectPolygon = SelectedPolygon;
+                }
+                else
+                {
+                    _subjectPolygon = null;
+                }
+                RedrawAll();
+            };
+            cm.Items.Add(miSubject);
+
+            MenuItem miClipping = new() { Header = "[Clipping] Window", IsCheckable = true };
+            miClipping.Loaded += (s, e) =>
+            {
+                miClipping.IsChecked = _clippingPolygon == SelectedPolygon;
+            };
+            miClipping.Click += (_, __) =>
+            {
+                if (miClipping.IsChecked && _subjectPolygon != SelectedPolygon)
+                {
+                    _clippingPolygon = SelectedPolygon;
+                }
+                else
+                {
+                    _clippingPolygon = null;
+                }
+                RedrawAll();
+            };
+            cm.Items.Add(miClipping);
+
+            MenuItem miFillColor = new() { Header = "Change Fill Color..." };
+            StackPanel miFillColorContainer = new();
+            ColorPicker cpFill = new() { Width = 50, SelectedColor = SelectedPolygon.FillColor };
+            Binding miFillColorBind = new("FillColor") { Source = SelectedPolygon, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+            cpFill.SetBinding(ColorPicker.SelectedColorProperty, miFillColorBind);
+            cpFill.SelectedColorChanged += (_, __) =>
+            {
+                SelectedPolygon.FillColor = (Color)cpFill.SelectedColor;
+                RedrawAll();
+            };
+            miFillColorContainer.Children.Add(cpFill);
+            miFillColor.Header = miFillColorContainer;
+            miFillColor.StaysOpenOnClick = true;
+            cm.Items.Add(miFillColor);
+
+            MenuItem miImage = new() { Header = "Fill Image", IsCheckable = true };
+            StackPanel miImageContainer = new() { Orientation = Orientation.Horizontal };
+            Image thumbnail = new()
+            {
+                Width = 32,
+                Height = 32,
+                Stretch = Stretch.UniformToFill,
+                Margin = new Thickness(5),
+                Source = SelectedPolygon.BitmapSource
+            };
+            SelectedPolygon.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SelectedPolygon.BitmapSource))
+                {
+                    thumbnail.Source = SelectedPolygon.BitmapSource;
+                }
+            };
+            miImage.Loaded += (s, e) =>
+            {
+                miImage.IsChecked = !SelectedPolygon.IsFillColor;
+            };
+            miImage.Click += (_, __) =>
+            {
+                SelectedPolygon.IsFillColor = !miImage.IsChecked;
+                RedrawAll();
+            };
+            Button changeImageBtn = new()
+            {
+                Content = "Change...",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5)
+            };
+            changeImageBtn.Click += (_, __) =>
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var img = new BitmapImage();
+                    img.BeginInit();
+                    img.UriSource = new Uri(dlg.FileName);
+                    img.CacheOption = BitmapCacheOption.OnLoad;
+                    img.EndInit();
+                    SelectedPolygon.BitmapSource = img;
+                    RedrawAll();
+                }
+            };
+            miImageContainer.Children.Add(thumbnail);
+            miImageContainer.Children.Add(changeImageBtn);
+            miImage.Header = miImageContainer;
+            miImage.StaysOpenOnClick = true;
+            cm.Items.Add(miImage);
 
             cm.IsOpen = true;
         }
@@ -1202,6 +1335,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         ArgumentNullException.ThrowIfNull(polygon, "Current polygon was null, something went wrong");
 
+        FillPolygon(polygon);
+
         for (int i = 0; i < polygon.Vertices.Count; i++)
         {
             var vertex = polygon.Vertices[i];
@@ -1302,6 +1437,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             DrawRectangle(rectangle);
         }
+        if (_subjectPolygon != null && _clippingPolygon != null)
+            ClipAndHighlight(_subjectPolygon, _clippingPolygon, Colors.Red);
     }
 
     #region Marker Functions
@@ -1507,6 +1644,246 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         System.Windows.Controls.Canvas.SetLeft(marker, x - marker.Width / 2);
         System.Windows.Controls.Canvas.SetTop(marker, y - marker.Height / 2);
         return marker;
+    }
+    #endregion
+
+    #region Polygon Clipping and Filling
+    private void ClipAndHighlight(Polygon subject, Polygon clipWindow, Color highlightColor)
+    {
+        var W = clipWindow.Vertices;
+        if (W.Count < 3)
+            return;
+
+        var S = subject.Vertices;
+        int n = S.Count;
+        for (int i = 0; i < n; i++)
+        {
+            var p0 = S[i];
+            var p1 = S[(i + 1) % n];
+            var line = new Line
+            {
+                X1 = p0.X,
+                Y1 = p0.Y,
+                X2 = p1.X,
+                Y2 = p1.Y,
+                Color = highlightColor,
+                Thickness = subject.Thickness
+            };
+
+            if (TryClipLine(pointList: W, line: line, out var q0, out var q1))
+            {
+                DrawLine(new Line
+                {
+                    X1 = q0.X,
+                    Y1 = q0.Y,
+                    X2 = q1.X,
+                    Y2 = q1.Y,
+                    Color = highlightColor,
+                    Thickness = subject.Thickness
+                });
+            }
+        }
+    }
+
+    private void ClipAndHighlight(Polygon subject, Rectangle rectangle, Color highlightColor)
+    {
+        var d = rectangle.Diagonal;
+        var a = new Point(d.X1, d.Y1);
+        var c = new Point(d.X2, d.Y2);
+
+        var minX = Math.Min(a.X, c.X);
+        var maxX = Math.Max(a.X, c.X);
+        var minY = Math.Min(a.Y, c.Y);
+        var maxY = Math.Max(a.Y, c.Y);
+        var W = new List<Point>
+        {
+            new Point(minX, minY),
+            new Point(maxX, minY),
+            new Point(maxX, maxY),
+            new Point(minX, maxY)
+        };
+        ClipAndHighlight(subject, new Polygon
+        {
+            Vertices = W,
+            Color = subject.Color,
+            Thickness = subject.Thickness
+        }, highlightColor);
+    }
+
+    private bool TryClipLine(IList<Point> pointList, Line line, out Point q0, out Point q1)
+    {
+        var W = pointList;
+        int m = W.Count;
+        var P0 = new Point(line.X1, line.Y1);
+        var P1 = new Point(line.X2, line.Y2);
+        var D = new Vector(P1.X - P0.X, P1.Y - P0.Y);
+
+        double tE = 0, tL = 1;
+
+        for (int i = 0; i < m; i++)
+        {
+            var A = W[i];
+            var B = W[(i + 1) % m];
+            var E = new Vector(B.X - A.X, B.Y - A.Y);
+
+            var Ni = new Vector(-E.Y, E.X);
+
+            double num = Vector.Multiply(Ni, new Vector(P0.X - A.X, P0.Y - A.Y));
+            double den = Vector.Multiply(Ni, D);
+
+            if (Math.Abs(den) < 1e-9)
+            {
+                if (num < 0)
+                {
+                    q0 = q1 = default;
+                    return false;
+                }
+            }
+            else
+            {
+                double t = -num / den;
+                if (den > 0)
+                {
+                    tE = Math.Max(tE, t);
+                    if (tE > tL) { q0 = q1 = default; return false; }
+                }
+                else
+                {
+                    tL = Math.Min(tL, t);
+                    if (tL < tE) { q0 = q1 = default; return false; }
+                }
+            }
+        }
+
+        q0 = new Point(P0.X + tE * D.X, P0.Y + tE * D.Y);
+        q1 = new Point(P0.X + tL * D.X, P0.Y + tL * D.Y);
+        return true;
+    }
+
+    private unsafe void FillPolygon(Polygon polygon)
+    {
+        if (polygon.Vertices.Count < 3)
+            return;
+        var verts = polygon.Vertices;
+
+        int pw = 0, ph = 0, strideP = 0, wBB = 0, hBB = 0, x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+        byte[] pixels = [];
+        if (polygon.BitmapSource != null && !polygon.IsFillColor)
+        {
+            double minX = verts.Min(p => p.X);
+            double maxX = verts.Max(p => p.X);
+            double minY = verts.Min(p => p.Y);
+            double maxY = verts.Max(p => p.Y);
+
+            x0 = (int)Math.Ceiling(minX);
+            x1 = (int)Math.Floor(maxX);
+            y0 = (int)Math.Ceiling(minY);
+            y1 = (int)Math.Floor(maxY);
+
+            wBB = x1 - x0 + 1;
+            hBB = y1 - y0 + 1;
+            if (wBB <= 0 || hBB <= 0)
+                return;
+
+            pw = polygon.BitmapSource.PixelWidth;
+            ph = polygon.BitmapSource.PixelHeight;
+            strideP = pw * 4;
+            pixels = new byte[ph * strideP];
+            polygon.BitmapSource.CopyPixels(pixels, strideP, 0);
+        }
+
+        var ET = new SortedDictionary<int, List<EdgeEntry>>();
+        int yMinGlobal = int.MaxValue, yMaxGlobal = int.MinValue;
+        for (int i = 0; i < verts.Count; i++)
+        {
+            var p1 = verts[i];
+            var p2 = verts[(i + 1) % verts.Count];
+            if (p1.Y == p2.Y)
+                continue;
+
+            double xAtYMin;
+            int yMin, yMax;
+            if (p1.Y < p2.Y)
+            {
+                yMin = (int)Math.Ceiling(p1.Y);
+                yMax = (int)Math.Ceiling(p2.Y);
+                xAtYMin = p1.X;
+            }
+            else
+            {
+                yMin = (int)Math.Ceiling(p2.Y);
+                yMax = (int)Math.Ceiling(p1.Y);
+                xAtYMin = p2.X;
+            }
+
+            double invM = (p2.X - p1.X) / (p2.Y - p1.Y);
+
+            if (!ET.TryGetValue(yMin, out var bucket))
+            {
+                bucket = new List<EdgeEntry>();
+                ET[yMin] = bucket;
+            }
+            bucket.Add(new EdgeEntry(yMin, yMax, xAtYMin, invM));
+
+            yMinGlobal = Math.Min(yMinGlobal, yMin);
+            yMaxGlobal = Math.Max(yMaxGlobal, yMax);
+        }
+
+        var AET = new List<EdgeEntry>();
+
+        for (int y = yMinGlobal; y < yMaxGlobal; y++)
+        {
+            if (ET.TryGetValue(y, out var edgesStarting))
+                AET.AddRange(edgesStarting);
+
+            AET.RemoveAll(e => e.YMax <= y);
+            AET.Sort((e1, e2) => e1.X.CompareTo(e2.X));
+
+            for (int i = 0; i + 1 < AET.Count; i += 2)
+            {
+                int xStart = (int)Math.Ceiling(AET[i].X);
+                int xEnd = (int)Math.Ceiling(AET[i + 1].X);
+                for (int x = xStart; x < xEnd; x++)
+                {
+                    if (polygon.BitmapSource == null || polygon.IsFillColor)
+                        DrawPixel(x, y, (byte*)_bitmap.BackBuffer.ToPointer(), _bitmap.BackBufferStride, polygon.FillColor);
+                    else
+                    {
+                        double u = (x - x0) / (double)(wBB - 1);  // [0..1]
+                        double v = (y - y0) / (double)(hBB - 1);  // [0..1]
+
+                        int sx = Math.Clamp((int)(u * (pw - 1)), 0, pw - 1);
+                        int sy = Math.Clamp((int)(v * (ph - 1)), 0, ph - 1);
+
+                        int idx = sy * strideP + sx * 4;
+                        byte b = pixels[idx + 0];
+                        byte g = pixels[idx + 1];
+                        byte r = pixels[idx + 2];
+                        byte a = pixels[idx + 3];
+                        DrawPixel(x, y, (byte*)_bitmap.BackBuffer.ToPointer(), _bitmap.BackBufferStride, Color.FromArgb(a, r, g, b));
+                    }
+                }
+            }
+
+            foreach (var edge in AET)
+            {
+                edge.X += edge.InvM;
+            }
+        }
+    }
+
+    class EdgeEntry
+    {
+        public int YMax;
+        public double X;
+        public double InvM;
+
+        public EdgeEntry(int yMin, int yMax, double xAtYMin, double invM)
+        {
+            YMax = yMax;
+            X = xAtYMin;
+            InvM = invM;
+        }
     }
     #endregion
 }

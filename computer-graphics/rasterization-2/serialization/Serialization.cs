@@ -1,4 +1,5 @@
 ﻿using rasterization_2.shapes;
+using System.Buffers.Text;
 using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
@@ -68,7 +69,10 @@ namespace rasterization_2.serialization
                 {
                     Thickness = polygon.Thickness,
                     Color = ConvertColor(polygon.Color),
-                    Vertices = []
+                    Vertices = [],
+                    FillColor = ConvertColor(polygon.FillColor),
+                    IsFillColor = polygon.IsFillColor,
+                    BitmapSource = EncodeBitmapSourceToBase64(polygon.BitmapSource)
                 };
                 foreach (var vertex in polygon.Vertices)
                 {
@@ -146,7 +150,10 @@ namespace rasterization_2.serialization
                 {
                     Thickness = dto.Thickness,
                     Color = ConvertColor(dto.Color),
-                    Vertices = []
+                    Vertices = [],
+                    FillColor = ConvertColor(dto.FillColor),
+                    IsFillColor = dto.IsFillColor,
+                    BitmapSource = DecodeBitmapSourceFromBase64(dto.BitmapSource)
                 };
                 foreach (var v in dto.Vertices)
                     polygon.Vertices.Add(new Point(v.X, v.Y));
@@ -176,6 +183,35 @@ namespace rasterization_2.serialization
             mainWindow.Canvas.Width = data.BitmapWidth;
             mainWindow.Canvas.Height = data.BitmapHeight;
             mainWindow.RedrawAll();
+        }
+
+        private static string? EncodeBitmapSourceToBase64(BitmapSource? bitmapSource)
+        {
+            if (bitmapSource == null)
+                return null;
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+
+            using MemoryStream ms = new();
+            encoder.Save(ms);
+            return Convert.ToBase64String(ms.ToArray());
+        }
+
+        private static BitmapSource? DecodeBitmapSourceFromBase64(string? base64String)
+        {
+            if (base64String == null)
+                return null;
+
+            byte[] bytes = Convert.FromBase64String(base64String);
+            using MemoryStream ms = new(bytes);
+            BitmapImage bmp = new();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = ms;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
         }
     }
 }
