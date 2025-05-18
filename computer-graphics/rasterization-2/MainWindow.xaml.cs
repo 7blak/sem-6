@@ -1858,6 +1858,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         var W = pointList;
         int m = W.Count;
+        // direction of the subject segment
         var P0 = new Point(line.X1, line.Y1);
         var P1 = new Point(line.X2, line.Y2);
         var D = new Vector(P1.X - P0.X, P1.Y - P0.Y);
@@ -1866,33 +1867,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         for (int i = 0; i < m; i++)
         {
+            // edge from Wi to Wi+1
             var A = W[i];
             var B = W[(i + 1) % m];
             var E = new Vector(B.X - A.X, B.Y - A.Y);
 
+            // inward normal Ni = (-Ey, Ex) for CCW window
             var Ni = new Vector(-E.Y, E.X);
 
+            // compute Ni*(P0 - A) and Ni*D (dot prods)
             double num = Vector.Multiply(Ni, new Vector(P0.X - A.X, P0.Y - A.Y));
             double den = Vector.Multiply(Ni, D);
 
             if (Math.Abs(den) < 1e-9)
             {
+                // parallel to this edge
                 if (num < 0)
                 {
+                    // entire line is outside
                     q0 = q1 = default;
                     return false;
                 }
+                // else parallel & inside
             }
             else
             {
                 double t = -num / den;
                 if (den > 0)
                 {
+                    // potential entering point
                     tE = Math.Max(tE, t);
                     if (tE > tL) { q0 = q1 = default; return false; }
                 }
                 else
                 {
+                    // potential leaving point
                     tL = Math.Min(tL, t);
                     if (tL < tE) { q0 = q1 = default; return false; }
                 }
