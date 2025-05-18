@@ -892,7 +892,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             };
             cm.Items.Add(miClipping);
 
-            MenuItem miFillColor = new() { Header = "Change Fill Color..." };
+            MenuItem miFillColor = new() { Header = "Change Fill Color...", IsCheckable = true };
             StackPanel miFillColorContainer = new();
             ColorPicker cpFill = new() { Width = 50, SelectedColor = SelectedPolygon.FillColor };
             Binding miFillColorBind = new("FillColor") { Source = SelectedPolygon, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
@@ -900,6 +900,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             cpFill.SelectedColorChanged += (_, __) =>
             {
                 SelectedPolygon.FillColor = (Color)cpFill.SelectedColor;
+                RedrawAll();
+            };
+            miFillColor.Loaded += (s, e) =>
+            {
+                miFillColor.IsChecked = SelectedPolygon.IsFilled;
+            };
+            miFillColor.Click += (_, __) =>
+            {
+                SelectedPolygon.IsFilled = miFillColor.IsChecked;
                 RedrawAll();
             };
             miFillColorContainer.Children.Add(cpFill);
@@ -1762,7 +1771,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private unsafe void FillPolygon(Polygon polygon)
     {
-        if (polygon.Vertices.Count < 3)
+        if (polygon.Vertices.Count < 3 || !polygon.IsFilled)
             return;
         var verts = polygon.Vertices;
 

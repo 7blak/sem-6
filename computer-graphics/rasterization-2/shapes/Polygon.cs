@@ -8,6 +8,7 @@ namespace rasterization_2.shapes;
 public class Polygon : INotifyPropertyChanged
 {
     private bool _isFillColor;
+    private bool _isFilled;
     private int _selectedVertexIndex = -1;
     private double _thickness;
     private Color _color;
@@ -18,6 +19,11 @@ public class Polygon : INotifyPropertyChanged
     {
         get => _isFillColor;
         set { _isFillColor = value; OnPropertyChanged(nameof(IsFillColor)); }
+    }
+    public bool IsFilled
+    {
+        get => _isFilled;
+        set { _isFilled = value; OnPropertyChanged(nameof(IsFilled)); }
     }
     public int SelectedVertexIndex
     {
@@ -57,6 +63,7 @@ public class Polygon : INotifyPropertyChanged
     public Polygon()
     {
         _isFillColor = true;
+        _isFilled = false;
         Color = Colors.Black;
         FillColor = Colors.White;
         Thickness = 1.0;

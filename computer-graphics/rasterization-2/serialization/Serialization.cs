@@ -72,6 +72,7 @@ namespace rasterization_2.serialization
                     Vertices = [],
                     FillColor = ConvertColor(polygon.FillColor),
                     IsFillColor = polygon.IsFillColor,
+                    IsFilled = polygon.IsFilled,
                     BitmapSource = EncodeBitmapSourceToBase64(polygon.BitmapSource)
                 };
                 foreach (var vertex in polygon.Vertices)
@@ -153,6 +154,7 @@ namespace rasterization_2.serialization
                     Vertices = [],
                     FillColor = ConvertColor(dto.FillColor),
                     IsFillColor = dto.IsFillColor,
+                    IsFilled = dto.IsFilled,
                     BitmapSource = DecodeBitmapSourceFromBase64(dto.BitmapSource)
                 };
                 foreach (var v in dto.Vertices)
