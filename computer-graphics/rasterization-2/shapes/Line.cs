@@ -45,7 +45,7 @@ public class Line : INotifyPropertyChanged
     }
     public Line()
     {
-        _color = Colors.Black;
-        _thickness = 1.0;
+        Color = Colors.Black;
+        Thickness = 1.0;
     }
 }

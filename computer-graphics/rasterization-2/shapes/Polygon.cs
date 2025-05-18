@@ -37,8 +37,8 @@ public class Polygon : INotifyPropertyChanged
     }
     public Polygon()
     {
-        _color = Colors.Black;
-        _thickness = 1.0;
+        Color = Colors.Black;
+        Thickness = 1.0;
         _vertices = [];
     }
 }

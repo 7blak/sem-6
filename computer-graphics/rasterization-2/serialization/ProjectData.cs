@@ -7,4 +7,5 @@ public class ProjectData
     public required List<LineDto> Lines { get; set; }
     public required List<CircleDto> Circles { get; set; }
     public required List<PolygonDto> Polygons { get; set; }
+    public required List<RectangleDto> Rectangles { get; set; }
 }

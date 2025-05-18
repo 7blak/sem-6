@@ -28,7 +28,8 @@ namespace rasterization_2.serialization
                 BitmapHeight = mainWindow.Bitmap.PixelHeight,
                 Lines = [],
                 Circles = [],
-                Polygons = []
+                Polygons = [],
+                Rectangles = []
             };
 
             static string ConvertColor(Color c)
@@ -78,6 +79,19 @@ namespace rasterization_2.serialization
                     });
                 }
                 data.Polygons.Add(polygonDto);
+            }
+
+            foreach (var rectangle in mainWindow.Rectangles)
+            {
+                data.Rectangles.Add(new RectangleDto
+                {
+                    Thickness = rectangle.Thickness,
+                    Color = ConvertColor(rectangle.Color),
+                    X1 = rectangle.Diagonal.X1,
+                    Y1 = rectangle.Diagonal.Y1,
+                    X2 = rectangle.Diagonal.X2,
+                    Y2 = rectangle.Diagonal.Y2
+                });
             }
 
             string json = JsonSerializer.Serialize(data, json_writeOptions);
@@ -137,6 +151,23 @@ namespace rasterization_2.serialization
                 foreach (var v in dto.Vertices)
                     polygon.Vertices.Add(new Point(v.X, v.Y));
                 mainWindow.Polygons.Add(polygon);
+            }
+
+            foreach (var dto in data.Rectangles)
+            {
+                var rectangle = new Rectangle
+                {
+                    Thickness = dto.Thickness,
+                    Color = ConvertColor(dto.Color),
+                    Diagonal = new Line
+                    {
+                        X1 = dto.X1,
+                        Y1 = dto.Y1,
+                        X2 = dto.X2,
+                        Y2 = dto.Y2
+                    }
+                };
+                mainWindow.Rectangles.Add(rectangle);
             }
 
             mainWindow.Bitmap = new WriteableBitmap(data.BitmapWidth, data.BitmapHeight, 96, 96, PixelFormats.Bgra32, null);
