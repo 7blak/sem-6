@@ -54,5 +54,31 @@ namespace rasterization_2
         {
             return Math.Abs((p - circle.Center).Length - circle.Radius);
         }
+
+        public static Polygon ConvertRectangleToPolygon(Rectangle rectangle)
+        {
+            var x1 = rectangle.Diagonal.X1;
+            var y1 = rectangle.Diagonal.Y1;
+            var x2 = rectangle.Diagonal.X2;
+            var y2 = rectangle.Diagonal.Y2;
+
+            double left = Math.Min(x1, x2);
+            double right = Math.Max(x1, x2);
+            double top = Math.Min(y1, y2);
+            double bottom = Math.Max(y1, y2);
+
+            return new Polygon
+            {
+                Thickness = rectangle.Thickness,
+                Color = rectangle.Color,
+                Vertices = new List<Point>
+            {
+                new(left, top),     // Top-left
+                new(right, top),    // Top-right
+                new(right, bottom), // Bottom-right
+                new(left, bottom)   // Bottom-left
+            }
+            };
+        }
     }
 }

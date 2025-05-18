@@ -59,6 +59,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private Polygon? _subjectPolygon = null;
     private Polygon? _clippingPolygon = null;
+    private Rectangle? _subjectRectangle = null;
     private Rectangle? _clippingRectangle = null;
 
     private System.Windows.Shapes.Line? _previewLine = null;
@@ -657,6 +658,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             }
         }
+        SelectedRectangle = null;
+        foreach (var rectangle in _rectangles)
+        {
+            if (DistancePointToLine(p, new Point(rectangle.Diagonal.X1, rectangle.Diagonal.Y1), new Point(rectangle.Diagonal.X1, rectangle.Diagonal.Y2)) <= SELECT_LINE_NEAR_TOLERANCE ||
+                DistancePointToLine(p, new Point(rectangle.Diagonal.X1, rectangle.Diagonal.Y1), new Point(rectangle.Diagonal.X2, rectangle.Diagonal.Y1)) <= SELECT_LINE_NEAR_TOLERANCE ||
+                DistancePointToLine(p, new Point(rectangle.Diagonal.X2, rectangle.Diagonal.Y2), new Point(rectangle.Diagonal.X1, rectangle.Diagonal.Y2)) <= SELECT_LINE_NEAR_TOLERANCE ||
+                DistancePointToLine(p, new Point(rectangle.Diagonal.X2, rectangle.Diagonal.Y2), new Point(rectangle.Diagonal.X2, rectangle.Diagonal.Y1)) <= SELECT_LINE_NEAR_TOLERANCE)
+            {
+                Select(rectangle);
+                break;
+            }
+        }
 
         if (SelectedLine != null)
         {
@@ -1006,7 +1019,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             margin.Left = 10;
             margin.Right = 10;
             tb.Margin = margin;
-            Binding miThickBind = new("Thickness") { Source = SelectedPolygon, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+            Binding miThickBind = new("Thickness") { Source = SelectedRectangle, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
             tb.SetBinding(TextBox.TextProperty, miThickBind);
             tb.LostKeyboardFocus += (_, __) =>
             {
@@ -1037,6 +1050,124 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             miColor.Header = miColorContainer;
             miColor.StaysOpenOnClick = true;
             cm.Items.Add(miColor);
+
+            MenuItem miSubject = new() { Header = "[Clipping] Subject", IsCheckable = true };
+            miSubject.Loaded += (s, e) =>
+            {
+                miSubject.IsChecked = _subjectRectangle == SelectedRectangle;
+            };
+            miSubject.Click += (_, __) =>
+            {
+                if (miSubject.IsChecked && _clippingRectangle != SelectedRectangle)
+                {
+                    _subjectRectangle = SelectedRectangle;
+                }
+                else
+                {
+                    _subjectRectangle = null;
+                }
+                RedrawAll();
+            };
+            cm.Items.Add(miSubject);
+
+            MenuItem miClipping = new() { Header = "[Clipping] Window", IsCheckable = true };
+            miClipping.Loaded += (s, e) =>
+            {
+                miClipping.IsChecked = _clippingRectangle == SelectedRectangle;
+            };
+            miClipping.Click += (_, __) =>
+            {
+                if (miClipping.IsChecked && _subjectRectangle != SelectedRectangle)
+                {
+                    _clippingRectangle = SelectedRectangle;
+                }
+                else
+                {
+                    _clippingRectangle = null;
+                }
+                RedrawAll();
+            };
+            cm.Items.Add(miClipping);
+
+            MenuItem miFillColor = new() { Header = "Change Fill Color...", IsCheckable = true };
+            StackPanel miFillColorContainer = new();
+            ColorPicker cpFill = new() { Width = 50, SelectedColor = SelectedRectangle.FillColor };
+            Binding miFillColorBind = new("FillColor") { Source = SelectedRectangle, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+            cpFill.SetBinding(ColorPicker.SelectedColorProperty, miFillColorBind);
+            cpFill.SelectedColorChanged += (_, __) =>
+            {
+                SelectedRectangle.FillColor = (Color)cpFill.SelectedColor;
+                RedrawAll();
+            };
+            miFillColor.Loaded += (s, e) =>
+            {
+                miFillColor.IsChecked = SelectedRectangle.IsFilled;
+            };
+            miFillColor.Click += (_, __) =>
+            {
+                SelectedRectangle.IsFilled = miFillColor.IsChecked;
+                RedrawAll();
+            };
+            miFillColorContainer.Children.Add(cpFill);
+            miFillColor.Header = miFillColorContainer;
+            miFillColor.StaysOpenOnClick = true;
+            cm.Items.Add(miFillColor);
+
+            MenuItem miImage = new() { Header = "Fill Image", IsCheckable = true };
+            StackPanel miImageContainer = new() { Orientation = Orientation.Horizontal };
+            Image thumbnail = new()
+            {
+                Width = 32,
+                Height = 32,
+                Stretch = Stretch.UniformToFill,
+                Margin = new Thickness(5),
+                Source = SelectedRectangle.BitmapSource
+            };
+            SelectedRectangle.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SelectedRectangle.BitmapSource))
+                {
+                    thumbnail.Source = SelectedRectangle.BitmapSource;
+                }
+            };
+            miImage.Loaded += (s, e) =>
+            {
+                miImage.IsChecked = !SelectedRectangle.IsFillColor;
+            };
+            miImage.Click += (_, __) =>
+            {
+                SelectedRectangle.IsFillColor = !miImage.IsChecked;
+                RedrawAll();
+            };
+            Button changeImageBtn = new()
+            {
+                Content = "Change...",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5)
+            };
+            changeImageBtn.Click += (_, __) =>
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var img = new BitmapImage();
+                    img.BeginInit();
+                    img.UriSource = new Uri(dlg.FileName);
+                    img.CacheOption = BitmapCacheOption.OnLoad;
+                    img.EndInit();
+                    SelectedRectangle.BitmapSource = img;
+                    RedrawAll();
+                }
+            };
+            miImageContainer.Children.Add(thumbnail);
+            miImageContainer.Children.Add(changeImageBtn);
+            miImage.Header = miImageContainer;
+            miImage.StaysOpenOnClick = true;
+            cm.Items.Add(miImage);
 
             cm.IsOpen = true;
         }
@@ -1381,6 +1512,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         ArgumentNullException.ThrowIfNull(rectangle, "Current rectangle was null, something went wrong");
 
+        FillPolygon(rectangle);
+
         Point[] points =
         [
             new Point(rectangle.Diagonal.X1, rectangle.Diagonal.Y1),
@@ -1448,6 +1581,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         if (_subjectPolygon != null && _clippingPolygon != null)
             ClipAndHighlight(_subjectPolygon, _clippingPolygon, Colors.Red);
+        if (_subjectRectangle != null && _clippingRectangle != null)
+            ClipAndHighlight(ConvertRectangleToPolygon(_subjectRectangle), _clippingRectangle, Colors.Red);
     }
 
     #region Marker Functions
@@ -1879,6 +2014,36 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 edge.X += edge.InvM;
             }
         }
+    }
+
+    private unsafe void FillPolygon(Rectangle rectangle)
+    {
+        var x1 = rectangle.Diagonal.X1;
+        var y1 = rectangle.Diagonal.Y1;
+        var x2 = rectangle.Diagonal.X2;
+        var y2 = rectangle.Diagonal.Y2;
+
+        double left = Math.Min(x1, x2);
+        double right = Math.Max(x1, x2);
+        double top = Math.Min(y1, y2);
+        double bottom = Math.Max(y1, y2);
+
+        FillPolygon(new Polygon
+        {
+            IsFilled = rectangle.IsFilled,
+            FillColor = rectangle.FillColor,
+            BitmapSource = rectangle.BitmapSource,
+            IsFillColor = rectangle.IsFillColor,
+            Thickness = rectangle.Thickness,
+            Color = rectangle.Color,
+            Vertices = new List<Point>
+            {
+                new(left, top),     // Top-left
+                new(right, top),    // Top-right
+                new(right, bottom), // Bottom-right
+                new(left, bottom)   // Bottom-left
+            }
+        });
     }
 
     class EdgeEntry
