@@ -21,7 +21,9 @@ public enum ToolType
     Line,
     Circle,
     Polygon,
-    Rectangle
+    Rectangle,
+    BucketColor,
+    BucketImage
 }
 
 public partial class MainWindow : Window, INotifyPropertyChanged
@@ -46,6 +48,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private Color _currentColor = Colors.Black;
     private Color _backgroundColor = Colors.White;
+    private Color _fillColor = Colors.Cyan;
 
     private Point _startPoint;
 
@@ -67,6 +70,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
 
     private WriteableBitmap _bitmap = new(400, 400, 96, 96, PixelFormats.Bgra32, null);
+    private BitmapSource? _loadedImage = null;
 
     private List<Point> _verticesCopy = [];
 
@@ -79,6 +83,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public double CurrentThickness { get { return _currentThickness; } set { if (_currentThickness != value) { _currentThickness = value <= 0 ? 1 : value >= 21 ? 21 : value; OnPropertyChanged(nameof(CurrentThickness)); } } }
 
     public Color CurrentColor { get { return _currentColor; } set { if (_currentColor != value) { _currentColor = value; OnPropertyChanged(nameof(CurrentColor)); } } }
+    public Color FillColor { get { return _fillColor; } set { if (_fillColor != value) { _fillColor = value; OnPropertyChanged(nameof(FillColor)); } } }
 
     public Line? SelectedLine { get { return _selectedLine; } set { if (_selectedLine != value) { _selectedLine = value; OnPropertyChanged(nameof(SelectedLine)); } } }
     public Circle? SelectedCircle { get { return _selectedCircle; } set { if (_selectedCircle != value) { _selectedCircle = value; OnPropertyChanged(nameof(SelectedCircle)); } } }
@@ -274,6 +279,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _currentTool = ToolType.Polygon;
         else if (sender == RectangleToolItem)
             _currentTool = ToolType.Rectangle;
+        else if (sender == BucketColorToolItem)
+            _currentTool = ToolType.BucketColor;
+        else if (sender == BucketImageToolItem)
+            _currentTool = ToolType.BucketImage;
         else
             throw new ArgumentException("Unknown tool type");
 
@@ -282,12 +291,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         CircleToolItem.IsChecked = _currentTool == ToolType.Circle;
         PolygonToolItem.IsChecked = _currentTool == ToolType.Polygon;
         RectangleToolItem.IsChecked = _currentTool == ToolType.Rectangle;
+        BucketColorToolItem.IsChecked = _currentTool == ToolType.BucketColor;
+        BucketImageToolItem.IsChecked = _currentTool == ToolType.BucketImage;
     }
 
     private void MenuAntialiasing_Click(object sender, RoutedEventArgs e)
     {
         IsAntialiasingOn = !IsAntialiasingOn;
         AntialiasingMenuItem.IsChecked = IsAntialiasingOn;
+    }
+
+    private void MenuLoadImage_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*"
+        };
+
+        if (dlg.ShowDialog() == true)
+        {
+            var img = new BitmapImage();
+            img.BeginInit();
+            img.UriSource = new Uri(dlg.FileName);
+            img.CacheOption = BitmapCacheOption.OnLoad;
+            img.EndInit();
+            _loadedImage = img;
+        }
     }
 
     private void Button_DecreaseThicknessValue(object sender, RoutedEventArgs e)
@@ -558,6 +587,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Tag = "PreviewLine"
             };
             CanvasHost.Children.Add(_previewLine);
+        }
+        else if (_currentTool == ToolType.BucketColor)
+        {
+            DeselectAll();
+            BucketFill(p, _fillColor);
+        }
+        else if (_currentTool == ToolType.BucketImage)
+        {
+            DeselectAll();
+            if (_loadedImage != null)
+                BucketFill(p, _loadedImage);
         }
     }
 
@@ -2069,4 +2109,196 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
     #endregion
+
+    private unsafe void BucketFill(Point startPoint, Color fillColor)
+    {
+        _bitmap.Lock();
+        byte* buffer = (byte*)_bitmap.BackBuffer.ToPointer();
+        int stride = _bitmap.BackBufferStride;
+        int width = _bitmap.PixelWidth;
+        int height = _bitmap.PixelHeight;
+
+        int baseIdx = (int)startPoint.Y * stride + (int)startPoint.X * 4;
+        byte tb = buffer[baseIdx];
+        byte tg = buffer[baseIdx + 1];
+        byte tr = buffer[baseIdx + 2];
+        byte ta = buffer[baseIdx + 3];
+
+        if (tb == fillColor.B && tg == fillColor.G && tr == fillColor.R && ta == fillColor.A)
+        {
+            _bitmap.Unlock();
+            return;
+        }
+
+        var stack = new Stack<(int x, int y)>();
+        stack.Push(((int)startPoint.X, (int)startPoint.Y));
+
+        while (stack.Count > 0)
+        {
+            var (x, y) = stack.Pop();
+
+            int xLeft = x;
+            while (xLeft >= 0 && IsTarget(xLeft, y))
+                xLeft--;
+            xLeft++;
+
+            int xRight = x;
+            while (xRight < width && IsTarget(xRight, y))
+                xRight++;
+            xRight--;
+
+            for (int xi = xLeft; xi <= xRight; xi++)
+                DrawPixel(xi, y, buffer, stride, fillColor);
+
+            if (y > 0)
+            {
+                int xi = xLeft;
+                while (xi <= xRight)
+                {
+                    while (xi <= xRight && !IsTarget(xi, y - 1))
+                        xi++;
+                    if (xi > xRight)
+                        break;
+                    stack.Push((xi, y - 1));
+                    while (xi <= xRight && IsTarget(xi, y - 1))
+                        xi++;
+                }
+            }
+
+            if (y < height - 1)
+            {
+                int xi = xLeft;
+                while (xi <= xRight)
+                {
+                    while (xi <= xRight && !IsTarget(xi, y + 1))
+                        xi++;
+                    if (xi > xRight)
+                        break;
+                    stack.Push((xi, y + 1));
+                    while (xi <= xRight && IsTarget(xi, y + 1))
+                        xi++;
+                }
+            }
+        }
+
+        _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
+        _bitmap.Unlock();
+        Canvas.Source = _bitmap;
+
+        bool IsTarget(int x, int y)
+        {
+            int idx = y * stride + x * 4;
+            return buffer[idx] == tb &&
+                   buffer[idx + 1] == tg &&
+                   buffer[idx + 2] == tr &&
+                   buffer[idx + 3] == ta;
+        }
+    }
+
+    private unsafe void BucketFill(Point startPoint, BitmapSource image)
+    {
+        _bitmap.Lock();
+        byte* buffer = (byte*)_bitmap.BackBuffer.ToPointer();
+        int stride = _bitmap.BackBufferStride;
+        int width = _bitmap.PixelWidth;
+        int height = _bitmap.PixelHeight;
+
+        int iWidth = image.PixelWidth;
+        int iHeight = image.PixelHeight;
+        int iStride = iWidth * 4;
+        byte[] iPixels = new byte[iHeight * iStride];
+        image.CopyPixels(iPixels, iStride, 0);
+
+        int baseIdx = (int)startPoint.Y * stride + (int)startPoint.X * 4;
+        byte tb = buffer[baseIdx];
+        byte tg = buffer[baseIdx + 1];
+        byte tr = buffer[baseIdx + 2];
+        byte ta = buffer[baseIdx + 3];
+
+        int iIndex = 0;
+
+        if (tb == iPixels[iIndex] && tg == iPixels[iIndex + 1] && tr == iPixels[iIndex + 2] && ta == iPixels[iIndex + 3])
+        {
+            _bitmap.Unlock();
+            return;
+        }
+
+        var stack = new Stack<(int x, int y)>();
+        stack.Push(((int)startPoint.X, (int)startPoint.Y));
+
+        while (stack.Count > 0)
+        {
+            var (x, y) = stack.Pop();
+
+            int xLeft = x;
+            while (xLeft >= 0 && IsTarget(xLeft, y))
+                xLeft--;
+            xLeft++;
+
+            int xRight = x;
+            while (xRight < width && IsTarget(xRight, y))
+                xRight++;
+            xRight--;
+
+            for (int xi = xLeft; xi <= xRight; xi++)
+            {
+                int idx = y * stride + x * 4;
+
+                int ix = x % iWidth;
+                int iy = y % iHeight;
+                if (ix < 0) ix += iWidth;
+                if (iy < 0) iy += iHeight;
+
+                int iIdx = iy * iStride + ix * 4;
+
+                buffer[idx + 0] = iPixels[iIdx];
+                buffer[idx + 1] = iPixels[iIdx + 1];
+                buffer[idx + 2] = iPixels[iIdx + 2];
+                buffer[idx + 3] = iPixels[iIdx + 3];
+            }
+
+            if (y > 0)
+            {
+                int xi = xLeft;
+                while (xi <= xRight)
+                {
+                    while (xi <= xRight && !IsTarget(xi, y - 1))
+                        xi++;
+                    if (xi > xRight)
+                        break;
+                    stack.Push((xi, y - 1));
+                    while (xi <= xRight && IsTarget(xi, y - 1))
+                        xi++;
+                }
+            }
+
+            if (y < height - 1)
+            {
+                int xi = xLeft;
+                while (xi <= xRight)
+                {
+                    while (xi <= xRight && !IsTarget(xi, y + 1))
+                        xi++;
+                    if (xi > xRight)
+                        break;
+                    stack.Push((xi, y + 1));
+                    while (xi <= xRight && IsTarget(xi, y + 1))
+                        xi++;
+                }
+            }
+        }
+
+        _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
+        _bitmap.Unlock();
+        Canvas.Source = _bitmap;
+
+        bool IsTarget(int x, int y)
+        {
+            int idx = y * stride + x * 4;
+            return buffer[idx] == tb &&
+                   buffer[idx + 1] == tg &&
+                   buffer[idx + 2] == tr &&
+                   buffer[idx + 3] == ta;
+        }
+    }
 }

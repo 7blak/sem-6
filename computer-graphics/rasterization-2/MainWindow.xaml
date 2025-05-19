@@ -27,6 +27,8 @@
                 <MenuItem x:Name="CircleToolItem" Header="Circle Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <MenuItem x:Name="PolygonToolItem" Header="Polygon Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <MenuItem x:Name="RectangleToolItem" Header="Rectangle Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="BucketColorToolItem" Header="Bucket Color Tool" Click="MenuTool_Click" IsCheckable="True"/>
+                <MenuItem x:Name="BucketImageToolItem" Header="Bucket Image Tool" Click="MenuTool_Click" IsCheckable="True"/>
                 <Separator/>
                 <MenuItem StaysOpenOnClick="True">
                     <MenuItem.Header>
@@ -47,6 +49,15 @@
                     </MenuItem.Header>
                 </MenuItem>
                 <MenuItem x:Name="AntialiasingMenuItem" Header="Antialiasing" Click="MenuAntialiasing_Click" IsCheckable="True" IsChecked="False"/>
+                <MenuItem x:Name="LoadImageMenuItem" Header="Load Image for bucket fill..." Click="MenuLoadImage_Click"/>
+                <MenuItem StaysOpenOnClick="True">
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="-5,0,-5,0">
+                            <Label>Select Fill Color:</Label>
+                            <xctk:ColorPicker Name="colorFillPicker" Width="50" SelectedColor="{Binding FillColor}"/>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
             </MenuItem>
         </Menu>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left" VerticalAlignment="Top" >
