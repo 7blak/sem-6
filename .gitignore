@@ -405,3 +405,4 @@ build/
 /APDescription.txt
 /MTPs-Main-Container.txt
 high-performance-computing/matrix-vector-mult/mpi_matvec
+agent-systems/homework3/config/*
