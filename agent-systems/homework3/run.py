@@ -1,5 +1,5 @@
 from model import DefaultModel
-from agents import PreferenceAgent, JobSearchAgent, WebAgent
+from agents import PreferenceAgent, JobSearchAgent, WebAgent, CodingAgent
 from camel.societies.workforce import Workforce
 from camel.tasks import Task
 from camel.messages import BaseMessage
@@ -9,6 +9,7 @@ model = DefaultModel.create_openai_model()
 preference_agent = PreferenceAgent(model=model)
 job_search_agent = JobSearchAgent(model=model)
 web_agent = WebAgent(model=model)
+coding_agent = CodingAgent(model=model)
 
 workforce = Workforce("Job search and interview preparation")
 
@@ -36,3 +37,14 @@ task = Task(content="""
 task = workforce.process_task(task)
 
 print('Final result of task:\n', task.result)
+
+prompt = BaseMessage.make_user_message(role_name="html_workforce", content=f"""
+    Use this data to create the page: {task.result}
+    """)
+
+response = coding_agent.step(input_message=prompt)
+
+if response.msg is not None and hasattr(response.msg, 'content'):
+    print(response.msg.content)
+else:
+    print("No content available in response.")

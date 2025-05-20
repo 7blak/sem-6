@@ -1,6 +1,8 @@
 from camel.messages import BaseMessage
-from camel.agents import ChatAgent
+from camel.agents import ChatAgent, EmbodiedAgent
 from camel.toolkits import FunctionTool, SearchToolkit
+from camel.types import RoleType
+from camel.generators import SystemMessageGenerator
 from humanlayer import HumanLayer
 from linkup import LinkupClient
 from config.config import HUMAN_LAYER_API_KEY, LINKUP_API_KEY 
@@ -108,8 +110,22 @@ class WebAgent(ChatAgent):
     )
 
     search_toolkit = SearchToolkit(timeout=5000)
-    tools = [FunctionTool(search_toolkit.search_duckduckgo)]
+
+    tools = [FunctionTool(search_toolkit.search_duckduckgo)] # duckduckgo does not require an API key, but sometimes returns timeouts, it is the simplest solution that at least worked
 
     def __init__(self, model):
         super().__init__(model=model, system_message=self.agent_role, tools=self.tools)
 
+class CodingAgent(EmbodiedAgent):
+    agent_role = "coding_agent"
+
+    task = """Create and open a HTML website using Flask that will summarize the workforce results. Assume that no packages are installed, if needed initiate installation of them using Python pip."""
+
+    agent_spec = dict(role=agent_role, task=task)
+
+    role_tuple = (agent_role, RoleType.EMBODIMENT)
+
+    coding_system_message = SystemMessageGenerator().from_dict(meta_dict=agent_spec, role_tuple=role_tuple)
+
+    def __init__(self, model):
+        super().__init__(model=model, system_message=self.coding_system_message, tool_agents=None, code_interpreter=None)
