@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:_3D_lab"
         mc:Ignorable="d"
-        Title="3D Rotating Cube" Height="450" Width="800"
+        Title="3D Rotating Cube" Height="800" Width="1000"
         Loaded="Window_Loaded">
     <Grid>
         <Grid.RowDefinitions>
@@ -22,6 +22,10 @@
 
             <TextBlock Text="Distance:" VerticalAlignment="Center" Margin="20,0,5,0"/>
             <Slider x:Name="SliderDistance" Minimum="2" Maximum="10" Value="5" Width="150" ValueChanged="OnParameterChanged"/>
+
+            <TextBlock Text="FOV:" VerticalAlignment="Center" Margin="20,0,5,0"/>
+            <Slider x:Name="FovSlider" Minimum="1" Maximum="179" Value="90" Width="150" ValueChanged="OnParameterChanged"/>
+            
         </StackPanel>
 
         <Canvas x:Name="DrawCanvas" Grid.Row="1" Background="White"/>

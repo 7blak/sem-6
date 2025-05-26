@@ -70,7 +70,7 @@ public partial class MainWindow : Window
 
         Matrix3D transform = rotationX * rotationY;
 
-        double fov = 90;
+        double fov = FovSlider.Value;
         double fovRad = 1.0 / Math.Tan(fov * 0.5 * Math.PI / 180);
 
         DrawCanvas.Children.Clear();
