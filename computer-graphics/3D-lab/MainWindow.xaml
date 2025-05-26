@@ -1,0 +1,29 @@
+﻿<Window x:Class="_3D_lab.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:_3D_lab"
+        mc:Ignorable="d"
+        Title="3D Rotating Cube" Height="450" Width="800"
+        Loaded="Window_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <TextBlock Text="Rotate X:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <Slider x:Name="SliderRotateX" Minimum="0" Maximum="360" Width="150" ValueChanged="OnParameterChanged"/>
+
+            <TextBlock Text="Rotate Y:" VerticalAlignment="Center" Margin="20,0,5,0"/>
+            <Slider x:Name="SliderRotateY" Minimum="0" Maximum="360" Width="150" ValueChanged="OnParameterChanged"/>
+
+            <TextBlock Text="Distance:" VerticalAlignment="Center" Margin="20,0,5,0"/>
+            <Slider x:Name="SliderDistance" Minimum="2" Maximum="10" Value="5" Width="150" ValueChanged="OnParameterChanged"/>
+        </StackPanel>
+
+        <Canvas x:Name="DrawCanvas" Grid.Row="1" Background="White"/>
+    </Grid>
+</Window>
