@@ -12,13 +12,5 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Canvas Width="800" Height="800" Name="RenderCanvas" Background="Black" Grid.Row="0" />
-        <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="5">
-            <TextBlock Text="Distance:" VerticalAlignment="Center" Foreground="Black"/>
-            <Slider Name="SliderDistance" Minimum="-20" Maximum="20" Value="5" Width="150" Margin="5"/>
-            <TextBlock Text="Rotate X:" VerticalAlignment="Center" Foreground="Black"/>
-            <Slider Name="SliderRotX" Minimum="-180" Maximum="180" Value="0" Width="150" Margin="5"/>
-            <TextBlock Text="Rotate Y:" VerticalAlignment="Center" Foreground="Black"/>
-            <Slider Name="SliderRotY" Minimum="-180" Maximum="180" Value="0" Width="150" Margin="5"/>
-        </StackPanel>
     </Grid>
 </Window>
