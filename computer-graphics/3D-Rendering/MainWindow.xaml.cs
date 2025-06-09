@@ -5,13 +5,12 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using System.Xml.Linq;
 
 namespace _3D_Rendering
 {
     public partial class MainWindow : Window
     {
-        private List<Mesh> sceneMeshes = [];
+        private readonly List<Mesh> sceneMeshes = [];
         private Matrix4x4 proj;
         private Matrix4x4 view;
         private readonly DrawingVisual visual = new DrawingVisual();
@@ -56,10 +55,6 @@ namespace _3D_Rendering
                 pressedKeys.Remove(e.Key);
                 e.Handled = true;
             };
-
-            //SliderDistance.ValueChanged += (s, e) => UpdateView();
-            //SliderRotX.ValueChanged += (s, e) => UpdateView();
-            //SliderRotY.ValueChanged += (s, e) => UpdateView();
         }
 
         void InitMatrices()
