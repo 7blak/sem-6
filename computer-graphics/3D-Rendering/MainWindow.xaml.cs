@@ -2,8 +2,10 @@
 using System.IO;
 using System.Numerics;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Xml.Linq;
 
 namespace _3D_Rendering
 {
@@ -13,6 +15,15 @@ namespace _3D_Rendering
         private Matrix4x4 proj;
         private Matrix4x4 view;
         private readonly DrawingVisual visual = new DrawingVisual();
+
+        private Vector3 cameraPosition = new Vector3(0, 0, 0);
+        private float cameraYaw = 0f;
+        private float cameraPitch = 0f;
+
+        private float moveSpeed = 0.1f;
+        private float rotateSpeed = 2f;
+
+        private HashSet<Key> pressedKeys = new HashSet<Key>();
 
         public MainWindow()
         {
@@ -25,32 +36,129 @@ namespace _3D_Rendering
                 InitMatrices();
 
                 DispatcherTimer timer = new DispatcherTimer();
-                timer.Interval = TimeSpan.FromMilliseconds(30);
-                timer.Tick += (s2, e2) => Draw();
+                timer.Interval = TimeSpan.FromMilliseconds(16);
+                timer.Tick += (s2, e2) =>
+                {
+                    UpdateCamera();
+                    Draw();
+                };
                 timer.Start();
             };
 
-            SliderDistance.ValueChanged += (s, e) => UpdateView();
-            SliderRotX.ValueChanged += (s, e) => UpdateView();
-            SliderRotY.ValueChanged += (s, e) => UpdateView();
+            this.KeyDown += (s, e) =>
+            {
+                pressedKeys.Add(e.Key);
+                e.Handled = true;
+            };
+
+            this.KeyUp += (s, e) =>
+            {
+                pressedKeys.Remove(e.Key);
+                e.Handled = true;
+            };
+
+            //SliderDistance.ValueChanged += (s, e) => UpdateView();
+            //SliderRotX.ValueChanged += (s, e) => UpdateView();
+            //SliderRotY.ValueChanged += (s, e) => UpdateView();
         }
 
         void InitMatrices()
         {
-            float fov = MathF.PI / 4;
+            float fov = MathF.PI / 2;
             float aspect = (float)RenderCanvas.ActualWidth / (float)RenderCanvas.ActualHeight;
             float near = 0.1f, far = 100f;
             proj = CreatePerspectiveFieldOfView(fov, aspect, near, far);
             UpdateView();
         }
 
+        void UpdateCamera()
+        {
+            // Rotation with arrow keys
+            if (pressedKeys.Contains(Key.Right))
+                cameraYaw -= rotateSpeed;
+            if (pressedKeys.Contains(Key.Left))
+                cameraYaw += rotateSpeed;
+            if (pressedKeys.Contains(Key.Up))
+                cameraPitch -= rotateSpeed;
+            if (pressedKeys.Contains(Key.Down))
+                cameraPitch += rotateSpeed;
+
+            // Clamp pitch to prevent flipping
+            cameraPitch = Math.Clamp(cameraPitch, -89f, 89f);
+
+            // Convert angles to radians
+            float yawRad = cameraYaw * MathF.PI / 180f;
+            float pitchRad = cameraPitch * MathF.PI / 180f;
+
+            // Calculate forward, right, and up vectors from rotation
+            Vector3 forward = new Vector3(
+                MathF.Sin(yawRad) * MathF.Cos(pitchRad),
+                -MathF.Sin(pitchRad),
+                MathF.Cos(yawRad) * MathF.Cos(pitchRad)
+            );
+
+            Vector3 worldUp = Vector3.UnitY;
+            Vector3 right = Vector3.Normalize(Vector3.Cross(forward, worldUp));
+            Vector3 up = Vector3.Cross(right, forward);
+
+            // Movement with WASD + QE for up/down
+            if (pressedKeys.Contains(Key.W))
+                cameraPosition += forward * moveSpeed;
+            if (pressedKeys.Contains(Key.S))
+                cameraPosition -= forward * moveSpeed;
+            if (pressedKeys.Contains(Key.A))
+                cameraPosition -= right * moveSpeed;
+            if (pressedKeys.Contains(Key.D))
+                cameraPosition += right * moveSpeed;
+            if (pressedKeys.Contains(Key.Q))
+                cameraPosition -= worldUp * moveSpeed;
+            if (pressedKeys.Contains(Key.E))
+                cameraPosition += worldUp * moveSpeed;
+
+            // Speed adjustment
+            if (pressedKeys.Contains(Key.LeftShift))
+                moveSpeed = 0.2f; // Fast
+            else if (pressedKeys.Contains(Key.LeftCtrl))
+                moveSpeed = 0.05f; // Slow
+            else
+                moveSpeed = 0.1f; // Normal
+
+            UpdateView();
+        }
+
         void UpdateView()
         {
-            float dist = (float)SliderDistance.Value;
-            float rotX = (float)(SliderRotX.Value * Math.PI / 180);
-            float rotY = (float)(SliderRotY.Value * Math.PI / 180);
-            Matrix4x4 t = Matrix4x4.CreateFromYawPitchRoll(rotY, rotX, 0) * Matrix4x4.CreateTranslation(0, 0, dist);
-            Matrix4x4.Invert(t, out view);
+            // Convert angles to radians
+            float yawRad = cameraYaw * MathF.PI / 180f;
+            float pitchRad = cameraPitch * MathF.PI / 180f;
+
+            // Calculate camera's forward direction
+            Vector3 forward = new Vector3(
+                MathF.Sin(yawRad) * MathF.Cos(pitchRad),
+                -MathF.Sin(pitchRad),
+                MathF.Cos(yawRad) * MathF.Cos(pitchRad)
+            );
+
+            Vector3 target = cameraPosition + forward;
+            Vector3 up = Vector3.UnitY;
+
+            // Create view matrix using LookAt
+            view = CreateLookAt(cameraPosition, target, up);
+        }
+
+        // Helper method to create LookAt matrix
+        Matrix4x4 CreateLookAt(Vector3 eye, Vector3 target, Vector3 up)
+        {
+            Vector3 f = Vector3.Normalize(target - eye);
+            Vector3 s = Vector3.Normalize(Vector3.Cross(f, up));
+            Vector3 u = Vector3.Cross(s, f);
+
+            return new Matrix4x4(
+                s.X, u.X, -f.X, 0,
+                s.Y, u.Y, -f.Y, 0,
+                s.Z, u.Z, -f.Z, 0,
+                -Vector3.Dot(s, eye), -Vector3.Dot(u, eye), Vector3.Dot(f, eye), 1
+            );
         }
 
         void LoadScene(string path)
@@ -69,13 +177,22 @@ namespace _3D_Rendering
         {
             using (var dc = visual.RenderOpen())
             {
-                // Clear background
-                double w = RenderCanvas.ActualWidth;
-                double h = RenderCanvas.ActualHeight;
-                if (w < 1 || h < 1) return; // Skip drawing
+                dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, RenderCanvas.ActualWidth, RenderCanvas.ActualHeight));
 
-                dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, w, h));
+                var typeface = new Typeface("Consolas");
+                var text = new FormattedText(
+                    $"Pos: ({cameraPosition.X:F1}, {cameraPosition.Y:F1}, {cameraPosition.Z:F1})\n" +
+                    $"Rot: ({cameraPitch:F0}°, {cameraYaw:F0}°)\n" +
+                    $"WASD: Move, Arrows: Look, QE: Up/Down\n" +
+                    $"Shift: Fast, Ctrl: Slow",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    12,
+                    Brushes.White,
+                    1.0);
 
+                dc.DrawText(text, new Point(10, 10));
 
                 foreach (var mesh in sceneMeshes)
                 {
@@ -86,6 +203,11 @@ namespace _3D_Rendering
                         var v0 = Project(mesh.Vertices[tri.A], mvp);
                         var v1 = Project(mesh.Vertices[tri.B], mvp);
                         var v2 = Project(mesh.Vertices[tri.C], mvp);
+
+                        // Skip triangles with invalid projections
+                        if (v0.X < -5000 || v1.X < -5000 || v2.X < -5000)
+                            continue;
+
                         DrawLine(dc, v0, v1);
                         DrawLine(dc, v1, v2);
                         DrawLine(dc, v2, v0);
@@ -97,13 +219,20 @@ namespace _3D_Rendering
         Point Project(Vector3 v, Matrix4x4 mvp)
         {
             var p = Vector4.Transform(new Vector4(v, 1), mvp);
-            if (p.W != 0)
-            {
-                float x = (p.X / p.W + 1) * 0.5f * (float)RenderCanvas.ActualWidth;
-                float y = (1 - p.Y / p.W) * 0.5f * (float)RenderCanvas.ActualHeight;
-                return new Point(x, y);
-            }
-            return new Point(-1000, -1000);
+
+            // Check if vertex is behind camera or W is too small
+            if (p.W <= 0.001f)
+                return new Point(-10000, -10000); // Far offscreen
+
+            float x = (p.X / p.W + 1) * 0.5f * (float)RenderCanvas.ActualWidth;
+            float y = (1 - p.Y / p.W) * 0.5f * (float)RenderCanvas.ActualHeight;
+
+            // Optional: clip to screen bounds
+            if (x < -1000 || x > RenderCanvas.ActualWidth + 1000 ||
+                y < -1000 || y > RenderCanvas.ActualHeight + 1000)
+                return new Point(-10000, -10000);
+
+            return new Point(x, y);
         }
 
         void DrawLine(DrawingContext dc, Point a, Point b)
